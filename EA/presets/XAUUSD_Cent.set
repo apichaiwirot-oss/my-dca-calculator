@@ -1,0 +1,45 @@
+; DCA AutoTrader - XAUUSD (Gold) Cent Account Preset
+; Timeframe: H1
+; Account: Cent
+
+InpMagicComment=DCA_GOLD
+InpMagicNumber=202402
+InpCentAccount=true
+
+; Entry Signal
+InpFastMA=20
+InpSlowMA=50
+InpRSIPeriod=14
+InpRSIOverbought=70.0
+InpRSIOversold=30.0
+InpMAMethod=1
+InpMAPrice=1
+
+; Trade Settings
+; XAUUSD cent: 0.01 lot = 0.01 oz Gold on cent account
+InpLotSize=0.01
+InpMaxLotSize=0.20
+InpTakeProfitPct=1.5
+InpStopLossPct=3.0
+InpUseTrailing=true
+InpTrailingPct=0.8
+
+; DCA Settings
+InpEnableDCA=true
+InpMaxDCALevels=5
+InpDCATriggerPct=1.5
+InpDCAMultiplier=1.5
+InpDCAMaxLot=0.08
+
+; Risk Management
+InpMaxDDPercent=20.0
+InpMaxSpread=50
+InpSlippage=20
+InpAllowBuy=true
+InpAllowSell=true
+
+; Session Filter
+; Gold trades best during London/NY sessions
+InpUseSession=true
+InpSessionStart=7
+InpSessionEnd=21
