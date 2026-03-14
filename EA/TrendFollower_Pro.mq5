@@ -1,0 +1,666 @@
+//+------------------------------------------------------------------+
+//|                                          TrendFollower_Pro.mq5   |
+//|                   Multi-Indicator Trend Following EA             |
+//|                   BTCUSD, XAUUSD, TFEX, Forex                   |
+//|                   Version 1.0                                    |
+//+------------------------------------------------------------------+
+//
+//  STRATEGY OVERVIEW
+//  ─────────────────
+//  ใช้ Indicator หลายตัวยืนยันสัญญาณก่อนเข้า Order
+//
+//  TREND FILTER (Higher TF)
+//    EMA50 > EMA200  →  UPTREND zone   → Long only
+//    EMA50 < EMA200  →  DOWNTREND zone → Short only
+//
+//  ENTRY SIGNAL (Current TF) — ต้องผ่านอย่างน้อย 2 ใน 3
+//    1. MACD  : MACD line ตัดขึ้น/ลง Signal line
+//    2. Bollinger Band : ปิดทะลุ Upper (Long) / Lower (Short)
+//    3. Parabolic SAR  : SAR เปลี่ยนด้านใต้/บนแท่งเทียน
+//
+//  EXIT
+//    - Stop Loss  : ATR-based หรือ Swing High/Low
+//    - Take Profit: ปล่อยวิ่งตาม Trailing Stop (ATR × multiplier)
+//    - Force Exit : EMA crossover ตรงข้าม
+//
+//  RISK MANAGEMENT
+//    - Lot = (Balance × Risk%) / (ATR × ATR_Multiplier × TickValue)
+//    - จำกัด Risk 2-5% ต่อ trade
+//    - Max Drawdown guard
+//
+//  DOUBLE ROBOT (A/B)
+//    - Robot A : Timeframe เร็ว (M15/H1) — เก็บกำไรถี่
+//    - Robot B : Timeframe ช้า (H4/D1)  — ตามเทรนด์ใหญ่
+//    - ใช้ Magic Number ต่างกัน รันบนกราฟเดียวกันได้
+//+------------------------------------------------------------------+
+#property copyright "TrendFollower Pro"
+#property version   "1.00"
+#property description "Multi-Indicator Trend Following EA | EMA+MACD+BB+SAR | ATR Risk"
+
+#include <Trade\Trade.mqh>
+#include <Trade\PositionInfo.mqh>
+
+//===================================================================
+//  INPUT PARAMETERS
+//===================================================================
+
+input group "═══ Robot Identity ═══"
+input int      InpMagicNumber     = 300100;       // Magic Number (A=300100, B=300200)
+input string   InpBotName         = "TF_RobotA";  // Bot Name (for logs)
+
+input group "═══ Trend Filter (Higher Timeframe) ═══"
+input ENUM_TIMEFRAMES InpTrendTF  = PERIOD_H4;    // Trend Timeframe
+input int      InpTrendEMAFast    = 50;            // Fast EMA (trend TF)
+input int      InpTrendEMASlow    = 200;           // Slow EMA (trend TF)
+input bool     InpStrictTrend     = true;          // Strict: skip trade if trend unclear
+
+input group "═══ Entry Indicators (Current Timeframe) ═══"
+input int      InpMinSignals      = 2;             // Min confirmations needed (1-3)
+
+// EMA for entry
+input int      InpEntryEMAFast    = 20;            // Entry Fast EMA
+input int      InpEntryEMASlow    = 50;            // Entry Slow EMA
+
+// MACD
+input int      InpMACDFast        = 12;            // MACD Fast EMA
+input int      InpMACDSlow        = 26;            // MACD Slow EMA
+input int      InpMACDSignal      = 9;             // MACD Signal
+input bool     InpUseMACDHist     = true;          // Use MACD Histogram (histogram > 0 = bullish)
+
+// Bollinger Bands
+input int      InpBBPeriod        = 20;            // BB Period
+input double   InpBBDeviation     = 2.0;           // BB Deviation
+input bool     InpBBRequireClose  = true;          // Require close (not just touch) outside BB
+
+// Parabolic SAR
+input double   InpSARStep         = 0.02;          // SAR Step
+input double   InpSARMax          = 0.2;           // SAR Maximum
+
+input group "═══ ATR Risk Management ═══"
+input int      InpATRPeriod       = 14;            // ATR Period
+input double   InpRiskPercent     = 2.0;           // Risk % per trade (2-5%)
+input double   InpATRSLMulti      = 1.5;           // SL = ATR × this multiplier
+input double   InpATRTPMulti      = 3.0;           // Initial TP = ATR × this multiplier
+input bool     InpUseSwingHL      = true;          // Use Swing High/Low for SL (overrides ATR SL)
+input int      InpSwingLookback   = 10;            // Bars to look back for Swing H/L
+input double   InpMaxLotSize      = 1.00;          // Hard cap lot size
+input double   InpMinLotSize      = 0.01;          // Min lot size
+
+input group "═══ Trailing Stop ═══"
+input bool     InpUseTrailing     = true;          // Enable ATR Trailing Stop
+input double   InpTrailATRMulti   = 2.0;           // Trail distance = ATR × this
+input double   InpTrailActivePct  = 0.5;           // Activate trailing when profit >= ATR × 0.5
+
+input group "═══ Force Exit Conditions ═══"
+input bool     InpExitOnEMACross  = true;          // Exit when EMA crossover reverses
+input bool     InpExitOnSARFlip   = false;         // Exit when Parabolic SAR flips
+input bool     InpExitOnMACDCross = false;         // Exit when MACD crosses back
+
+input group "═══ Protection ═══"
+input double   InpMaxDDPercent    = 15.0;          // Max Drawdown % — stop trading
+input int      InpMaxSpread       = 80;            // Max spread (points)
+input int      InpSlippage        = 30;            // Slippage (points)
+input int      InpMaxPositions    = 1;             // Max open positions (this bot)
+
+input group "═══ Session Filter ═══"
+input bool     InpUseSession      = false;         // Enable session filter
+input int      InpSessionStart    = 2;             // Start hour (server time)
+input int      InpSessionEnd      = 22;            // End hour
+
+//===================================================================
+//  GLOBAL VARIABLES
+//===================================================================
+
+CTrade        trade;
+CPositionInfo posInfo;
+
+// Indicator handles — Trend TF
+int  hTrendEMAFast = INVALID_HANDLE;
+int  hTrendEMASlow = INVALID_HANDLE;
+
+// Indicator handles — Entry TF
+int  hEntryEMAFast = INVALID_HANDLE;
+int  hEntryEMASlow = INVALID_HANDLE;
+int  hMACD         = INVALID_HANDLE;
+int  hBB           = INVALID_HANDLE;
+int  hSAR          = INVALID_HANDLE;
+int  hATR          = INVALID_HANDLE;
+
+// Buffers
+double bTrendFast[], bTrendSlow[];
+double bEntryFast[], bEntrySlow[];
+double bMACDMain[], bMACDSignal[], bMACDHist[];
+double bBBUpper[], bBBLower[], bBBMid[];
+double bSAR[], bATR[];
+
+datetime gLastBar  = 0;
+double   gATRValue = 0;
+
+//===================================================================
+//  INIT / DEINIT
+//===================================================================
+
+int OnInit()
+{
+   trade.SetExpertMagicNumber(InpMagicNumber);
+   trade.SetDeviationInPoints(InpSlippage);
+   trade.SetTypeFilling(ORDER_FILLING_IOC);
+   trade.SetAsyncMode(false);
+
+   // Trend TF handles
+   hTrendEMAFast = iMA(_Symbol, InpTrendTF, InpTrendEMAFast, 0, MODE_EMA, PRICE_CLOSE);
+   hTrendEMASlow = iMA(_Symbol, InpTrendTF, InpTrendEMASlow, 0, MODE_EMA, PRICE_CLOSE);
+
+   // Entry TF handles
+   hEntryEMAFast = iMA(_Symbol, PERIOD_CURRENT, InpEntryEMAFast, 0, MODE_EMA, PRICE_CLOSE);
+   hEntryEMASlow = iMA(_Symbol, PERIOD_CURRENT, InpEntryEMASlow, 0, MODE_EMA, PRICE_CLOSE);
+   hMACD         = iMACD(_Symbol, PERIOD_CURRENT, InpMACDFast, InpMACDSlow, InpMACDSignal, PRICE_CLOSE);
+   hBB           = iBands(_Symbol, PERIOD_CURRENT, InpBBPeriod, 0, InpBBDeviation, PRICE_CLOSE);
+   hSAR          = iSAR(_Symbol, PERIOD_CURRENT, InpSARStep, InpSARMax);
+   hATR          = iATR(_Symbol, PERIOD_CURRENT, InpATRPeriod);
+
+   if(hTrendEMAFast == INVALID_HANDLE || hTrendEMASlow == INVALID_HANDLE ||
+      hEntryEMAFast == INVALID_HANDLE || hEntryEMASlow == INVALID_HANDLE ||
+      hMACD         == INVALID_HANDLE || hBB           == INVALID_HANDLE ||
+      hSAR          == INVALID_HANDLE || hATR          == INVALID_HANDLE)
+   {
+      Alert(InpBotName, ": Failed to create indicator handles!");
+      return INIT_FAILED;
+   }
+
+   ArraySetAsSeries(bTrendFast,  true);
+   ArraySetAsSeries(bTrendSlow,  true);
+   ArraySetAsSeries(bEntryFast,  true);
+   ArraySetAsSeries(bEntrySlow,  true);
+   ArraySetAsSeries(bMACDMain,   true);
+   ArraySetAsSeries(bMACDSignal, true);
+   ArraySetAsSeries(bMACDHist,   true);
+   ArraySetAsSeries(bBBUpper,    true);
+   ArraySetAsSeries(bBBLower,    true);
+   ArraySetAsSeries(bBBMid,      true);
+   ArraySetAsSeries(bSAR,        true);
+   ArraySetAsSeries(bATR,        true);
+
+   PrintFormat("══ %s Initialized | %s | TrendTF: %s | Risk: %.1f%% | MinSignals: %d/3 ══",
+               InpBotName, _Symbol, EnumToString(InpTrendTF),
+               InpRiskPercent, InpMinSignals);
+   return INIT_SUCCEEDED;
+}
+
+void OnDeinit(const int reason)
+{
+   int handles[] = {hTrendEMAFast, hTrendEMASlow, hEntryEMAFast, hEntryEMASlow,
+                    hMACD, hBB, hSAR, hATR};
+   for(int i = 0; i < ArraySize(handles); i++)
+      if(handles[i] != INVALID_HANDLE) IndicatorRelease(handles[i]);
+}
+
+//===================================================================
+//  MAIN TICK
+//===================================================================
+
+void OnTick()
+{
+   // Trailing stop — every tick
+   if(InpUseTrailing) ManageTrailingStop();
+
+   // New bar check
+   datetime barTime = iTime(_Symbol, PERIOD_CURRENT, 0);
+   if(barTime == gLastBar) return;
+   gLastBar = barTime;
+
+   // Pre-checks
+   if(!CheckSpread())                      return;
+   if(InpUseSession && !IsInSession())     return;
+   if(IsMaxDrawdown())                     return;
+   if(!RefreshAllIndicators())             return;
+
+   gATRValue = bATR[1]; // Use last completed bar ATR
+
+   int buyCount  = CountPositions(POSITION_TYPE_BUY);
+   int sellCount = CountPositions(POSITION_TYPE_SELL);
+   int totalPos  = buyCount + sellCount;
+
+   // --- Force Exit Check ---
+   if(totalPos > 0)
+   {
+      CheckForceExit(buyCount, sellCount);
+      return;
+   }
+
+   // --- New Entry ---
+   if(totalPos < InpMaxPositions)
+   {
+      // Get trend direction from higher TF
+      int trend = GetTrendDirection();
+      if(trend == 0 && InpStrictTrend) return;
+
+      // Count entry signals
+      int longSignals  = 0;
+      int shortSignals = 0;
+      GetEntrySignals(longSignals, shortSignals);
+
+      string sigLog = StringFormat("Trend:%s | Signals L%d/S%d",
+                                   TrendName(trend), longSignals, shortSignals);
+
+      // LONG: trend up + enough signals
+      if(trend >= 0 && longSignals >= InpMinSignals)
+      {
+         Print(InpBotName, " [ENTRY LONG] ", sigLog);
+         ExecuteEntry(ORDER_TYPE_BUY);
+      }
+      // SHORT: trend down + enough signals
+      else if(trend <= 0 && shortSignals >= InpMinSignals)
+      {
+         Print(InpBotName, " [ENTRY SHORT] ", sigLog);
+         ExecuteEntry(ORDER_TYPE_SELL);
+      }
+   }
+}
+
+//===================================================================
+//  TREND DIRECTION (Higher TF EMA50 vs EMA200)
+//===================================================================
+
+int GetTrendDirection()
+{
+   // Use bar[1] = last completed bar on trend TF
+   double fastEMA = bTrendFast[1];
+   double slowEMA = bTrendSlow[1];
+   double diff    = fastEMA - slowEMA;
+   double atr     = gATRValue > 0 ? gATRValue : 1;
+
+   // Require meaningful separation (> 10% of ATR) to avoid flat crossover noise
+   if(MathAbs(diff) < atr * 0.1)
+      return 0; // Too close — sideways
+
+   if(fastEMA > slowEMA) return  1; // Uptrend
+   if(fastEMA < slowEMA) return -1; // Downtrend
+   return 0;
+}
+
+//===================================================================
+//  ENTRY SIGNALS — 3 independent confirmations
+//===================================================================
+
+void GetEntrySignals(int &longSig, int &shortSig)
+{
+   longSig  = 0;
+   shortSig = 0;
+
+   // ── Signal 1: MACD ──────────────────────────────────────────────
+   if(InpUseMACDHist)
+   {
+      // Histogram: positive = bullish momentum, negative = bearish
+      if(bMACDHist[1] > 0 && bMACDHist[2] <= 0) longSig++;   // histogram just turned positive
+      if(bMACDHist[1] < 0 && bMACDHist[2] >= 0) shortSig++;  // histogram just turned negative
+   }
+   else
+   {
+      // Line crossover
+      if(bMACDMain[2] <= bMACDSignal[2] && bMACDMain[1] > bMACDSignal[1]) longSig++;
+      if(bMACDMain[2] >= bMACDSignal[2] && bMACDMain[1] < bMACDSignal[1]) shortSig++;
+   }
+
+   // ── Signal 2: Bollinger Band breakout ──────────────────────────
+   double closeBar1 = iClose(_Symbol, PERIOD_CURRENT, 1);
+   double closeBar2 = iClose(_Symbol, PERIOD_CURRENT, 2);
+
+   if(InpBBRequireClose)
+   {
+      // Close breaks OUT of BB (momentum breakout)
+      if(closeBar1 > bBBUpper[1])   longSig++;
+      if(closeBar1 < bBBLower[1])   shortSig++;
+   }
+   else
+   {
+      // Price touches outer band
+      if(closeBar1 > bBBMid[1] && closeBar2 <= bBBMid[2]) longSig++;
+      if(closeBar1 < bBBMid[1] && closeBar2 >= bBBMid[2]) shortSig++;
+   }
+
+   // ── Signal 3: Parabolic SAR flip ───────────────────────────────
+   // SAR flips when it crosses from above to below candle (or reverse)
+   double highBar1 = iHigh(_Symbol, PERIOD_CURRENT, 1);
+   double lowBar1  = iLow(_Symbol,  PERIOD_CURRENT, 1);
+   double highBar2 = iHigh(_Symbol, PERIOD_CURRENT, 2);
+   double lowBar2  = iLow(_Symbol,  PERIOD_CURRENT, 2);
+
+   bool sarWasAbove = (bSAR[2] > highBar2); // SAR was above candle (bearish)
+   bool sarNowBelow = (bSAR[1] < lowBar1);  // SAR now below candle (bullish flip)
+   bool sarWasBelow = (bSAR[2] < lowBar2);
+   bool sarNowAbove = (bSAR[1] > highBar1);
+
+   if(sarWasAbove && sarNowBelow) longSig++;   // SAR flipped bullish
+   if(sarWasBelow && sarNowAbove) shortSig++;  // SAR flipped bearish
+}
+
+//===================================================================
+//  EXECUTE ENTRY — ATR-based SL/TP + lot sizing
+//===================================================================
+
+void ExecuteEntry(ENUM_ORDER_TYPE type)
+{
+   if(gATRValue <= 0) return;
+
+   double ask    = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   double bid    = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   int    digits = (int)SymbolInfoInteger(_Symbol, SYMBOL_DIGITS);
+   double price  = (type == ORDER_TYPE_BUY) ? ask : bid;
+
+   // ── Calculate Stop Loss ─────────────────────────────────────────
+   double slDist = gATRValue * InpATRSLMulti;
+
+   if(InpUseSwingHL)
+   {
+      // Use recent swing low (buy) or swing high (sell) as SL
+      double swingLevel = GetSwingLevel(type, InpSwingLookback);
+      if(swingLevel > 0)
+      {
+         double swingDist = MathAbs(price - swingLevel);
+         // Take the wider of ATR-SL vs Swing-SL for safety
+         slDist = MathMax(slDist, swingDist);
+      }
+   }
+
+   double sl = (type == ORDER_TYPE_BUY)
+               ? NormalizeDouble(price - slDist, digits)
+               : NormalizeDouble(price + slDist, digits);
+
+   // ── Calculate Initial TP (ATR-based, trailing will override later)
+   double tpDist = gATRValue * InpATRTPMulti;
+   double tp = (type == ORDER_TYPE_BUY)
+               ? NormalizeDouble(price + tpDist, digits)
+               : NormalizeDouble(price - tpDist, digits);
+
+   // ── Calculate Lot (Risk-based) ──────────────────────────────────
+   double lot = CalcLotByATR(slDist);
+   if(lot <= 0) return;
+
+   // ── Open Trade ──────────────────────────────────────────────────
+   bool ok = (type == ORDER_TYPE_BUY)
+             ? trade.Buy(lot,  _Symbol, ask, sl, tp, InpBotName)
+             : trade.Sell(lot, _Symbol, bid, sl, tp, InpBotName);
+
+   if(ok)
+   {
+      double rr = tpDist / slDist;
+      PrintFormat("[%s OPEN] %s | Price: %.5f | Lot: %.2f | SL: %.5f | TP: %.5f | R:R=1:%.1f | ATR=%.5f",
+                  InpBotName, (type==ORDER_TYPE_BUY)?"LONG":"SHORT",
+                  price, lot, sl, tp, rr, gATRValue);
+   }
+   else
+      PrintFormat("[%s ERROR] Open failed: %d", InpBotName, GetLastError());
+}
+
+//===================================================================
+//  FORCE EXIT — EMA cross / SAR flip / MACD cross (opposite)
+//===================================================================
+
+void CheckForceExit(int buyCount, int sellCount)
+{
+   bool exitLong  = false;
+   bool exitShort = false;
+
+   // Exit on EMA crossover reversal
+   if(InpExitOnEMACross)
+   {
+      bool emaBearCross = (bEntryFast[2] >= bEntrySlow[2]) && (bEntryFast[1] < bEntrySlow[1]);
+      bool emaBullCross = (bEntryFast[2] <= bEntrySlow[2]) && (bEntryFast[1] > bEntrySlow[1]);
+      if(buyCount  > 0 && emaBearCross) exitLong  = true;
+      if(sellCount > 0 && emaBullCross) exitShort = true;
+   }
+
+   // Exit on SAR flip reversal
+   if(InpExitOnSARFlip)
+   {
+      double high1 = iHigh(_Symbol, PERIOD_CURRENT, 1);
+      double low1  = iLow(_Symbol,  PERIOD_CURRENT, 1);
+      double high2 = iHigh(_Symbol, PERIOD_CURRENT, 2);
+      double low2  = iLow(_Symbol,  PERIOD_CURRENT, 2);
+
+      if(buyCount  > 0 && bSAR[2] < low2  && bSAR[1] > high1) exitLong  = true;
+      if(sellCount > 0 && bSAR[2] > high2 && bSAR[1] < low1)  exitShort = true;
+   }
+
+   // Exit on MACD reverse cross
+   if(InpExitOnMACDCross)
+   {
+      bool macdBearCross = (bMACDMain[2] >= bMACDSignal[2]) && (bMACDMain[1] < bMACDSignal[1]);
+      bool macdBullCross = (bMACDMain[2] <= bMACDSignal[2]) && (bMACDMain[1] > bMACDSignal[1]);
+      if(buyCount  > 0 && macdBearCross) exitLong  = true;
+      if(sellCount > 0 && macdBullCross) exitShort = true;
+   }
+
+   if(exitLong || exitShort)
+   {
+      string reason = InpExitOnEMACross ? "EMA Cross" : InpExitOnSARFlip ? "SAR Flip" : "MACD Cross";
+      PrintFormat("[%s FORCE EXIT] Reason: %s", InpBotName, reason);
+      CloseAllPositions();
+   }
+}
+
+//===================================================================
+//  ATR TRAILING STOP (every tick)
+//===================================================================
+
+void ManageTrailingStop()
+{
+   int    digits  = (int)SymbolInfoInteger(_Symbol, SYMBOL_DIGITS);
+   double point   = SymbolInfoDouble(_Symbol, SYMBOL_POINT);
+   double atr     = gATRValue > 0 ? gATRValue : 0;
+   if(atr <= 0) return;
+
+   double trailDist = atr * InpTrailATRMulti;
+   double activeDist = atr * InpTrailActivePct;
+
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      if(!posInfo.SelectByIndex(i))          continue;
+      if(posInfo.Symbol() != _Symbol)        continue;
+      if(posInfo.Magic()  != InpMagicNumber) continue;
+
+      double openPx   = posInfo.PriceOpen();
+      double curSL    = posInfo.StopLoss();
+      double curTP    = posInfo.TakeProfit();
+
+      if(posInfo.PositionType() == POSITION_TYPE_BUY)
+      {
+         double bid    = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+         double profit = bid - openPx;
+
+         // Activate trailing only after minimum profit
+         if(profit < activeDist) continue;
+
+         double newSL = NormalizeDouble(bid - trailDist, digits);
+         if(newSL > curSL + point)
+            trade.PositionModify(posInfo.Ticket(), newSL, curTP);
+      }
+      else if(posInfo.PositionType() == POSITION_TYPE_SELL)
+      {
+         double ask    = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+         double profit = openPx - ask;
+
+         if(profit < activeDist) continue;
+
+         double newSL = NormalizeDouble(ask + trailDist, digits);
+         if(curSL == 0 || newSL < curSL - point)
+            trade.PositionModify(posInfo.Ticket(), newSL, curTP);
+      }
+   }
+}
+
+//===================================================================
+//  LOT SIZE — Risk / (ATR_SL_distance × TickValue)
+//===================================================================
+
+double CalcLotByATR(double slDist)
+{
+   double balance   = AccountInfoDouble(ACCOUNT_BALANCE);
+   double riskAmt   = balance * InpRiskPercent / 100.0;
+
+   double tickSz    = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
+   double tickVal   = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
+   double point     = SymbolInfoDouble(_Symbol, SYMBOL_POINT);
+
+   if(tickSz <= 0 || tickVal <= 0 || point <= 0 || slDist <= 0)
+      return InpMinLotSize;
+
+   double slPoints   = slDist / point;
+   double valPerPt   = (tickVal / tickSz) * point;
+   if(valPerPt <= 0) return InpMinLotSize;
+
+   double lot = riskAmt / (slPoints * valPerPt);
+   return NormalizeLot(lot);
+}
+
+//===================================================================
+//  SWING HIGH / LOW for SL
+//===================================================================
+
+double GetSwingLevel(ENUM_ORDER_TYPE type, int bars)
+{
+   double level = 0;
+   if(type == ORDER_TYPE_BUY)
+   {
+      // Find lowest low in last N bars (use as SL for long)
+      level = iLow(_Symbol, PERIOD_CURRENT, 1);
+      for(int i = 2; i <= bars; i++)
+      {
+         double lo = iLow(_Symbol, PERIOD_CURRENT, i);
+         if(lo < level) level = lo;
+      }
+      level -= gATRValue * 0.2; // Small buffer below swing low
+   }
+   else
+   {
+      // Find highest high in last N bars (SL for short)
+      level = iHigh(_Symbol, PERIOD_CURRENT, 1);
+      for(int i = 2; i <= bars; i++)
+      {
+         double hi = iHigh(_Symbol, PERIOD_CURRENT, i);
+         if(hi > level) level = hi;
+      }
+      level += gATRValue * 0.2; // Small buffer above swing high
+   }
+   return NormalizeDouble(level, (int)SymbolInfoInteger(_Symbol, SYMBOL_DIGITS));
+}
+
+//===================================================================
+//  HELPERS
+//===================================================================
+
+bool RefreshAllIndicators()
+{
+   if(CopyBuffer(hTrendEMAFast, 0, 0, 4, bTrendFast)  < 4) return false;
+   if(CopyBuffer(hTrendEMASlow, 0, 0, 4, bTrendSlow)  < 4) return false;
+   if(CopyBuffer(hEntryEMAFast, 0, 0, 4, bEntryFast)  < 4) return false;
+   if(CopyBuffer(hEntryEMASlow, 0, 0, 4, bEntrySlow)  < 4) return false;
+   if(CopyBuffer(hMACD, 0, 0, 4, bMACDMain)           < 4) return false;
+   if(CopyBuffer(hMACD, 1, 0, 4, bMACDSignal)         < 4) return false;
+   if(CopyBuffer(hMACD, 2, 0, 4, bMACDHist)           < 4) return false;
+   if(CopyBuffer(hBB,   1, 0, 4, bBBUpper)            < 4) return false;
+   if(CopyBuffer(hBB,   2, 0, 4, bBBLower)            < 4) return false;
+   if(CopyBuffer(hBB,   0, 0, 4, bBBMid)              < 4) return false;
+   if(CopyBuffer(hSAR,  0, 0, 4, bSAR)                < 4) return false;
+   if(CopyBuffer(hATR,  0, 0, 4, bATR)                < 4) return false;
+   return true;
+}
+
+void CloseAllPositions()
+{
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      if(!posInfo.SelectByIndex(i))          continue;
+      if(posInfo.Symbol() != _Symbol)        continue;
+      if(posInfo.Magic()  != InpMagicNumber) continue;
+      trade.PositionClose(posInfo.Ticket());
+   }
+}
+
+int CountPositions(ENUM_POSITION_TYPE posType)
+{
+   int n = 0;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      if(!posInfo.SelectByIndex(i))          continue;
+      if(posInfo.Symbol() != _Symbol)        continue;
+      if(posInfo.Magic()  != InpMagicNumber) continue;
+      if(posInfo.PositionType() == posType)  n++;
+   }
+   return n;
+}
+
+double NormalizeLot(double lot)
+{
+   double minLot  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+   double maxLot  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
+   double lotStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
+
+   lot = MathMax(lot, MathMax(minLot, InpMinLotSize));
+   lot = MathMin(lot, MathMin(maxLot, InpMaxLotSize));
+   lot = NormalizeDouble(MathFloor(lot / lotStep) * lotStep, 2);
+   return lot;
+}
+
+bool CheckSpread()
+{
+   return ((int)SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) <= InpMaxSpread);
+}
+
+bool IsInSession()
+{
+   MqlDateTime dt;
+   TimeToStruct(TimeCurrent(), dt);
+   return (dt.hour >= InpSessionStart && dt.hour < InpSessionEnd);
+}
+
+bool IsMaxDrawdown()
+{
+   double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+   double equity  = AccountInfoDouble(ACCOUNT_EQUITY);
+   if(balance <= 0) return false;
+   double dd = (balance - equity) / balance * 100.0;
+   if(dd >= InpMaxDDPercent)
+   {
+      static datetime lastWarn = 0;
+      if(TimeCurrent() - lastWarn > 300)
+      {
+         PrintFormat("[%s RISK] DD=%.2f%% > limit=%.2f%% — Trading paused",
+                     InpBotName, dd, InpMaxDDPercent);
+         lastWarn = TimeCurrent();
+      }
+      return true;
+   }
+   return false;
+}
+
+string TrendName(int t)
+{
+   if(t ==  1) return "UP";
+   if(t == -1) return "DOWN";
+   return "SIDE";
+}
+
+//===================================================================
+//  ON TRADE — Log deals
+//===================================================================
+
+void OnTradeTransaction(const MqlTradeTransaction& trans,
+                        const MqlTradeRequest&     request,
+                        const MqlTradeResult&      result)
+{
+   if(trans.type != TRADE_TRANSACTION_DEAL_ADD) return;
+   if(!HistoryDealSelect(trans.deal))           return;
+
+   long entry = HistoryDealGetInteger(trans.deal, DEAL_ENTRY);
+   if(entry == DEAL_ENTRY_OUT || entry == DEAL_ENTRY_OUT_BY)
+   {
+      double profit = HistoryDealGetDouble(trans.deal, DEAL_PROFIT);
+      double vol    = HistoryDealGetDouble(trans.deal, DEAL_VOLUME);
+      double px     = HistoryDealGetDouble(trans.deal, DEAL_PRICE);
+      PrintFormat("[%s CLOSED] Vol:%.2f | Price:%.5f | Profit:%+.2f | Balance:%.2f",
+                  InpBotName, vol, px, profit, AccountInfoDouble(ACCOUNT_BALANCE));
+   }
+}
+//+------------------------------------------------------------------+

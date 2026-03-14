@@ -1,0 +1,61 @@
+; ═══════════════════════════════════════════════════
+;  TrendFollower_Pro — ROBOT A  (Fast / H1)
+;  Symbol   : BTCUSD
+;  Timeframe: H1 (entry) | H4 (trend filter)
+;  Account  : $500 | Risk 2% = $10/trade
+; ═══════════════════════════════════════════════════
+
+InpMagicNumber=300102
+InpBotName=RobotA_BTC
+
+; --- Trend Filter ---
+InpTrendTF=16385       ; H4
+InpTrendEMAFast=50
+InpTrendEMASlow=200
+InpStrictTrend=true
+
+; --- Entry Indicators ---
+InpMinSignals=2
+InpEntryEMAFast=20
+InpEntryEMASlow=50
+InpMACDFast=12
+InpMACDSlow=26
+InpMACDSignal=9
+InpUseMACDHist=true
+InpBBPeriod=20
+InpBBDeviation=2.0
+InpBBRequireClose=true
+InpSARStep=0.02
+InpSARMax=0.2
+
+; --- Risk Management ---
+; BTC volatile — tighter risk
+InpRiskPercent=2.0
+InpATRPeriod=14
+InpATRSLMulti=1.5
+InpATRTPMulti=3.0
+InpUseSwingHL=true
+InpSwingLookback=8
+InpMaxLotSize=0.05
+InpMinLotSize=0.01
+
+; --- Trailing Stop ---
+InpUseTrailing=true
+InpTrailATRMulti=2.0
+InpTrailActivePct=0.5
+
+; --- Force Exit ---
+InpExitOnEMACross=true
+InpExitOnSARFlip=false
+InpExitOnMACDCross=false
+
+; --- Protection ---
+InpMaxDDPercent=15.0
+InpMaxSpread=150       ; BTC spread สูงกว่า
+InpSlippage=30
+InpMaxPositions=1
+
+; --- Session (BTC 24/7) ---
+InpUseSession=false
+InpSessionStart=0
+InpSessionEnd=24

@@ -1,0 +1,61 @@
+; ═══════════════════════════════════════════════════
+;  TrendFollower_Pro — ROBOT B  (Slow / H4)
+;  Symbol   : XAUUSD
+;  Timeframe: H4 (entry) | D1 (trend filter)
+;  Purpose  : ตามเทรนด์ใหญ่ — กำไรต่อเทรดมากกว่า
+;  Account  : $500 | Risk 3% = $15/trade
+; ═══════════════════════════════════════════════════
+
+InpMagicNumber=300201
+InpBotName=RobotB_H4
+
+; --- Trend Filter (D1) ---
+InpTrendTF=16408       ; D1
+InpTrendEMAFast=50
+InpTrendEMASlow=200
+InpStrictTrend=true
+
+; --- Entry Indicators ---
+InpMinSignals=2
+InpEntryEMAFast=20
+InpEntryEMASlow=50
+InpMACDFast=12
+InpMACDSlow=26
+InpMACDSignal=9
+InpUseMACDHist=false   ; ใช้ Line crossover แทน (ช้า-สะอาดกว่า)
+InpBBPeriod=20
+InpBBDeviation=2.0
+InpBBRequireClose=false  ; แค่แตะ Upper/Lower ก็นับ
+InpSARStep=0.02
+InpSARMax=0.2
+
+; --- Risk Management ---
+InpRiskPercent=3.0     ; 3% = $15 ต่อ trade
+InpATRPeriod=14
+InpATRSLMulti=2.0      ; SL กว้างขึ้น (H4 เทียนใหญ่)
+InpATRTPMulti=4.0      ; TP ไกลขึ้น (ตามเทรนด์ใหญ่)
+InpUseSwingHL=true
+InpSwingLookback=15
+InpMaxLotSize=0.30
+InpMinLotSize=0.01
+
+; --- Trailing Stop ---
+InpUseTrailing=true
+InpTrailATRMulti=2.5   ; Trailing กว้างขึ้นให้ตลาดหายใจ
+InpTrailActivePct=1.0
+
+; --- Force Exit ---
+InpExitOnEMACross=true
+InpExitOnSARFlip=false
+InpExitOnMACDCross=false
+
+; --- Protection ---
+InpMaxDDPercent=15.0
+InpMaxSpread=50
+InpSlippage=20
+InpMaxPositions=1
+
+; --- Session (24hr ไม่กรอง เพราะ H4 ไม่ sensitive) ---
+InpUseSession=false
+InpSessionStart=0
+InpSessionEnd=24
