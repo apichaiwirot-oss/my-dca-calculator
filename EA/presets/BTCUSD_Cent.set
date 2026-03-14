@@ -1,44 +1,51 @@
-; DCA AutoTrader - BTCUSD Cent Account Preset
-; Timeframe: H1
-; Account: Cent (e.g. $100 cent = 10000 cent balance)
+; DCA AutoTrader v2 - BTCUSD Cent Account Preset
+; Recommended Timeframe: H1 (entry) | H4 (trend filter)
+; Account Balance: $500 USD (Cent = 50,000 cent balance)
 
+InpMagicNumber=202501
 InpMagicComment=DCA_BTC
-InpMagicNumber=202401
-InpCentAccount=true
 
-; Entry Signal
+; === Trend Filter (H4) ===
+InpTrendTF=16385          ; PERIOD_H4
+InpTrendMA=200
+InpUseADX=true
+InpADXPeriod=14
+InpADXMinLevel=20.0
+
+; === Entry Signal (H1) ===
 InpFastMA=20
 InpSlowMA=50
 InpRSIPeriod=14
-InpRSIOverbought=70.0
-InpRSIOversold=30.0
-InpMAMethod=1
-InpMAPrice=1
+InpRSIOverbought=65.0
+InpRSIOversold=35.0
 
-; Trade Settings
-; BTCUSD cent: start with 0.01 lot (= 0.0001 BTC on cent)
-InpLotSize=0.01
+; === Risk Management ===
+; BTC is volatile: use 1% risk, wider SL
+InpRiskPercent=1.0
+InpSLPercent=2.5
+InpTPPercent=4.0
 InpMaxLotSize=0.10
-InpTakeProfitPct=2.0
-InpStopLossPct=5.0
+InpMinLotSize=0.01
 InpUseTrailing=true
-InpTrailingPct=1.0
+InpTrailingPercent=1.5
 
-; DCA Settings
+; === DCA Settings ===
 InpEnableDCA=true
-InpMaxDCALevels=4
+InpMaxDCALevels=3
 InpDCATriggerPct=2.0
-InpDCAMultiplier=1.5
-InpDCAMaxLot=0.05
+InpDCALotMultiply=1.5
 
-; Risk Management
+; === Trend Reversal ===
+InpCloseOnReversal=true
+InpReversalConfirm=2
+
+; === Protection ===
 InpMaxDDPercent=20.0
 InpMaxSpread=100
 InpSlippage=30
-InpAllowBuy=true
-InpAllowSell=true
 
-; Session Filter
+; === Session ===
+; BTC trades 24/7 - session filter off
 InpUseSession=false
-InpSessionStart=2
-InpSessionEnd=22
+InpSessionStart=0
+InpSessionEnd=24
