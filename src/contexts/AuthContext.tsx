@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { User, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth'
+import { User, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth, googleProvider } from '../lib/firebase'
 
 interface AuthContextType {
@@ -23,8 +23,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe
   }, [])
 
+  useEffect(() => {
+    getRedirectResult(auth).catch(() => {})
+  }, [])
+
   const signInWithGoogle = async () => {
-    await signInWithPopup(auth, googleProvider)
+    await signInWithRedirect(auth, googleProvider)
   }
 
   const logout = async () => {
