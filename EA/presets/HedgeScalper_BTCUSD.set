@@ -1,0 +1,43 @@
+; ═══════════════════════════════════════════════════
+;  HedgeScalper — BTCUSDm
+;  Timeframe: H1 chart | H4 trend filter
+;  Account  : Demo $500 | Risk 1%
+;  TP       : $250 USD price move per order
+; ═══════════════════════════════════════════════════
+
+InpMagicMain=400101
+InpMagicHedge=400201
+InpBotName=HedgeBTC
+
+; --- Trend ---
+InpTrendTF=16385       ; H4
+InpTrendEMA=200
+InpFollowTrend=true
+
+; --- TP/SL ($USD price movement) ---
+InpTPUSD=250.0         ; TP = BTC ราคาขยับ $250
+InpSLUSD=800.0         ; SL = BTC ราคาขยับ $800 (กว้างพอสำหรับ BTC)
+InpUseHedgeSL=true
+
+; --- Lot ---
+InpMainLot=0.01
+InpHedgeLot=0.01
+InpAutoLot=false       ; ใช้ lot คงที่ก่อน (ทดสอบ)
+InpRiskPercent=1.0
+
+; --- Re-open ---
+InpReopenMain=true
+InpReopenHedge=true
+InpReopenDelaySec=5
+InpMaxMainOrders=1
+InpMaxHedgeOrders=1
+
+; --- Protection ---
+InpMaxDDPercent=20.0
+InpMaxSpread=200
+InpSlippage=50
+
+; --- Session (BTC 24/7) ---
+InpUseSession=false
+InpSessionStart=0
+InpSessionEnd=24
