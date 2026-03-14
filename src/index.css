@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #0d1117;
+  color: #e6edf3;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+/* Number input arrows */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.5;
+}
+
+/* Recharts custom tooltip */
+.custom-tooltip {
+  background: #1c2128;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
