@@ -558,7 +558,10 @@ bool RefreshAllIndicators()
    if(CopyBuffer(hEntryEMASlow, 0, 0, 4, bEntrySlow)  < 4) return false;
    if(CopyBuffer(hMACD, 0, 0, 4, bMACDMain)           < 4) return false;
    if(CopyBuffer(hMACD, 1, 0, 4, bMACDSignal)         < 4) return false;
-   if(CopyBuffer(hMACD, 2, 0, 4, bMACDHist)           < 4) return false;
+   // MT5 iMACD has only 2 buffers (0=MACD, 1=Signal) — no buffer 2
+   // Calculate histogram manually: MACD line - Signal line
+   for(int i = 0; i < 4; i++)
+      bMACDHist[i] = bMACDMain[i] - bMACDSignal[i];
    if(CopyBuffer(hBB,   1, 0, 4, bBBUpper)            < 4) return false;
    if(CopyBuffer(hBB,   2, 0, 4, bBBLower)            < 4) return false;
    if(CopyBuffer(hBB,   0, 0, 4, bBBMid)              < 4) return false;
