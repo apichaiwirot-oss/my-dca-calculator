@@ -86,6 +86,9 @@ input int      InpSwingLookback   = 10;            // Bars to look back for Swin
 input double   InpMaxLotSize      = 1.00;          // Hard cap lot size
 input double   InpMinLotSize      = 0.01;          // Min lot size
 
+input group "═══ Debug ═══"
+input bool     InpDebugLog        = true;          // Print debug reason when no trade
+
 input group "═══ Trailing Stop ═══"
 input bool     InpUseTrailing     = true;          // Enable ATR Trailing Stop
 input double   InpTrailATRMulti   = 2.0;           // Trail distance = ATR × this
@@ -98,7 +101,7 @@ input bool     InpExitOnMACDCross = false;         // Exit when MACD crosses bac
 
 input group "═══ Protection ═══"
 input double   InpMaxDDPercent    = 15.0;          // Max Drawdown % — stop trading
-input int      InpMaxSpread       = 80;            // Max spread (points)
+input int      InpMaxSpread       = 500;           // Max spread (points) — BTC:500, Forex:30
 input int      InpSlippage        = 30;            // Slippage (points)
 input int      InpMaxPositions    = 1;             // Max open positions (this bot)
 
@@ -233,15 +236,29 @@ void OnTick()
    {
       // Get trend direction from higher TF
       int trend = GetTrendDirection();
-      if(trend == 0 && InpStrictTrend) return;
+      if(trend == 0 && InpStrictTrend)
+      {
+         if(InpDebugLog)
+            PrintFormat("[%s DEBUG] Skipped: trend=SIDE & StrictTrend=true | TrendEMA fast=%.5f slow=%.5f",
+                        InpBotName, bTrendFast[1], bTrendSlow[1]);
+         return;
+      }
 
       // Count entry signals
       int longSignals  = 0;
       int shortSignals = 0;
       GetEntrySignals(longSignals, shortSignals);
 
-      string sigLog = StringFormat("Trend:%s | Signals L%d/S%d",
-                                   TrendName(trend), longSignals, shortSignals);
+      string sigLog = StringFormat("Trend:%s | Signals L%d/S%d | ATR=%.5f",
+                                   TrendName(trend), longSignals, shortSignals, gATRValue);
+
+      if(InpDebugLog && longSignals < InpMinSignals && shortSignals < InpMinSignals)
+         PrintFormat("[%s DEBUG] Not enough signals — %s | MACDHist=%.5f | Close=%.5f BB[U=%.5f L=%.5f] | SAR=%.5f",
+                     InpBotName, sigLog,
+                     bMACDHist[1],
+                     iClose(_Symbol, PERIOD_CURRENT, 1),
+                     bBBUpper[1], bBBLower[1],
+                     bSAR[1]);
 
       // LONG: trend up + enough signals
       if(trend >= 0 && longSignals >= InpMinSignals)
@@ -618,7 +635,14 @@ ENUM_ORDER_TYPE_FILLING GetSymbolFilling()
 
 bool CheckSpread()
 {
-   return ((int)SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) <= InpMaxSpread);
+   int spread = (int)SymbolInfoInteger(_Symbol, SYMBOL_SPREAD);
+   if(spread > InpMaxSpread)
+   {
+      if(InpDebugLog)
+         PrintFormat("[%s DEBUG] Spread blocked: current=%d > max=%d", InpBotName, spread, InpMaxSpread);
+      return false;
+   }
+   return true;
 }
 
 bool IsInSession()
