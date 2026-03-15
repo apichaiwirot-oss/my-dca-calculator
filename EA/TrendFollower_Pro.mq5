@@ -52,10 +52,10 @@ input group "═══ Trend Filter (Higher Timeframe) ═══"
 input ENUM_TIMEFRAMES InpTrendTF  = PERIOD_H4;    // Trend Timeframe
 input int      InpTrendEMAFast    = 50;            // Fast EMA (trend TF)
 input int      InpTrendEMASlow    = 200;           // Slow EMA (trend TF)
-input bool     InpStrictTrend     = true;          // Strict: skip trade if trend unclear
+input bool     InpStrictTrend     = false;         // Strict: skip trade if trend unclear
 
 input group "═══ Entry Indicators (Current Timeframe) ═══"
-input int      InpMinSignals      = 2;             // Min confirmations needed (1-3)
+input int      InpMinSignals      = 1;             // Min confirmations needed (1-3)
 
 // EMA for entry
 input int      InpEntryEMAFast    = 20;            // Entry Fast EMA
@@ -82,7 +82,7 @@ input double   InpRiskPercent     = 2.0;           // Risk % per trade (2-5%)
 input double   InpATRSLMulti      = 1.5;           // SL = ATR × this multiplier
 input double   InpATRTPMulti      = 3.0;           // Initial TP = ATR × this multiplier
 input bool     InpUseSwingHL      = true;          // Use Swing High/Low for SL (overrides ATR SL)
-input int      InpSwingLookback   = 10;            // Bars to look back for Swing H/L
+input int      InpSwingLookback   = 5;             // Bars to look back for Swing H/L
 input double   InpMaxLotSize      = 1.00;          // Hard cap lot size
 input double   InpMinLotSize      = 0.01;          // Min lot size
 
