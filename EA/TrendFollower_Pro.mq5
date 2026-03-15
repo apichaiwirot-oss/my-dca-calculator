@@ -144,7 +144,7 @@ int OnInit()
 {
    trade.SetExpertMagicNumber(InpMagicNumber);
    trade.SetDeviationInPoints(InpSlippage);
-   trade.SetTypeFilling(ORDER_FILLING_IOC);
+   trade.SetTypeFilling(GetSymbolFilling());
    trade.SetAsyncMode(false);
 
    // Trend TF handles
@@ -291,9 +291,10 @@ void GetEntrySignals(int &longSig, int &shortSig)
    // ── Signal 1: MACD ──────────────────────────────────────────────
    if(InpUseMACDHist)
    {
-      // Histogram: positive = bullish momentum, negative = bearish
-      if(bMACDHist[1] > 0 && bMACDHist[2] <= 0) longSig++;   // histogram just turned positive
-      if(bMACDHist[1] < 0 && bMACDHist[2] >= 0) shortSig++;  // histogram just turned negative
+      // Histogram: positive momentum (bullish), negative (bearish)
+      // Accept fresh crossover OR already in momentum direction
+      if(bMACDHist[1] > 0) longSig++;
+      if(bMACDHist[1] < 0) shortSig++;
    }
    else
    {
@@ -560,6 +561,7 @@ bool RefreshAllIndicators()
    if(CopyBuffer(hMACD, 1, 0, 4, bMACDSignal)         < 4) return false;
    // MT5 iMACD has only 2 buffers (0=MACD, 1=Signal) — no buffer 2
    // Calculate histogram manually: MACD line - Signal line
+   ArrayResize(bMACDHist, 4);
    for(int i = 0; i < 4; i++)
       bMACDHist[i] = bMACDMain[i] - bMACDSignal[i];
    if(CopyBuffer(hBB,   1, 0, 4, bBBUpper)            < 4) return false;
@@ -604,6 +606,14 @@ double NormalizeLot(double lot)
    lot = MathMin(lot, MathMin(maxLot, InpMaxLotSize));
    lot = NormalizeDouble(MathFloor(lot / lotStep) * lotStep, 2);
    return lot;
+}
+
+ENUM_ORDER_TYPE_FILLING GetSymbolFilling()
+{
+   uint filling = (uint)SymbolInfoInteger(_Symbol, SYMBOL_FILLING_FLAGS);
+   if((filling & SYMBOL_FILLING_FOK)    != 0) return ORDER_FILLING_FOK;
+   if((filling & SYMBOL_FILLING_IOC)    != 0) return ORDER_FILLING_IOC;
+   return ORDER_FILLING_RETURN;
 }
 
 bool CheckSpread()
