@@ -101,7 +101,7 @@ input bool     InpExitOnMACDCross = false;         // Exit when MACD crosses bac
 
 input group "═══ Protection ═══"
 input double   InpMaxDDPercent    = 15.0;          // Max Drawdown % — stop trading
-input int      InpMaxSpread       = 500;           // Max spread (points) — BTC:500, Forex:30
+input int      InpMaxSpread       = 1000;          // Max spread (points) — BTC:1000, Forex:30
 input int      InpSlippage        = 30;            // Slippage (points)
 input int      InpMaxPositions    = 1;             // Max open positions (this bot)
 
