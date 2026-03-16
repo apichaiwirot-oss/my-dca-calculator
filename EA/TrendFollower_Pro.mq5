@@ -117,6 +117,22 @@ input bool     InpUseSession      = false;         // Enable session filter
 input int      InpSessionStart    = 2;             // Start hour (server time)
 input int      InpSessionEnd      = 22;            // End hour
 
+input group "═══ Scalp Mode ═══"
+// เปิด Scalp Mode → EA จะเปิด-ปิด Order เร็วบน TF เล็ก (ข้าม Trend Following logic)
+input bool            InpScalpMode      = false;      // Enable Scalp Mode (fast open/close on small TF)
+input ENUM_TIMEFRAMES InpScalpTF        = PERIOD_M5;  // Scalp Timeframe (M1 / M5)
+input int             InpScalpEMAFast   = 5;          // Scalp Fast EMA (entry TF)
+input int             InpScalpEMASlow   = 10;         // Scalp Slow EMA (entry TF)
+input int             InpScalpRSIPeriod = 7;          // Scalp RSI Period
+input double          InpScalpTPPoints  = 150.0;      // Scalp TP in points (XAUUSD 150pts≈$1.50)
+input double          InpScalpSLPoints  = 80.0;       // Scalp SL in points
+input bool            InpScalpAutoLot   = true;       // Auto lot by risk % (true) / fixed lot (false)
+input double          InpScalpRiskPct   = 0.5;        // Scalp risk % per trade
+input double          InpScalpFixedLot  = 0.01;       // Fixed lot (used when AutoLot=false)
+input bool            InpScalpUseTrend  = true;       // Filter by higher TF trend (H4 EMA)
+input bool            InpScalpQuickExit = true;       // Quick exit when EMA reverses (not wait TP/SL)
+input int             InpScalpMaxPos    = 1;          // Max simultaneous scalp positions
+
 //===================================================================
 //  GLOBAL VARIABLES
 //===================================================================
@@ -137,15 +153,23 @@ int  hSAR          = INVALID_HANDLE;
 int  hATR          = INVALID_HANDLE;
 int  hRSI          = INVALID_HANDLE;
 
+// Indicator handles — Scalp TF
+int  hScalpEMAFast = INVALID_HANDLE;
+int  hScalpEMASlow = INVALID_HANDLE;
+int  hScalpRSI     = INVALID_HANDLE;
+int  hScalpATR     = INVALID_HANDLE;
+
 // Buffers
 double bTrendFast[], bTrendSlow[];
 double bEntryFast[], bEntrySlow[];
 double bMACDMain[], bMACDSignal[], bMACDHist[];
 double bBBUpper[], bBBLower[], bBBMid[];
 double bSAR[], bATR[], bRSI[];
+double bScalpFast[], bScalpSlow[], bScalpRSI[], bScalpATR[];
 
-datetime gLastBar  = 0;
-double   gATRValue = 0;
+datetime gLastBar      = 0;
+datetime gLastScalpBar = 0;
+double   gATRValue     = 0;
 
 //===================================================================
 //  INIT / DEINIT
@@ -182,6 +206,25 @@ int OnInit()
       return INIT_FAILED;
    }
 
+   // Scalp Mode handles
+   if(InpScalpMode)
+   {
+      hScalpEMAFast = iMA(_Symbol, InpScalpTF, InpScalpEMAFast, 0, MODE_EMA, PRICE_CLOSE);
+      hScalpEMASlow = iMA(_Symbol, InpScalpTF, InpScalpEMASlow, 0, MODE_EMA, PRICE_CLOSE);
+      hScalpRSI     = iRSI(_Symbol, InpScalpTF, InpScalpRSIPeriod, PRICE_CLOSE);
+      hScalpATR     = iATR(_Symbol, InpScalpTF, InpATRPeriod);
+      if(hScalpEMAFast == INVALID_HANDLE || hScalpEMASlow == INVALID_HANDLE ||
+         hScalpRSI     == INVALID_HANDLE || hScalpATR     == INVALID_HANDLE)
+      {
+         Alert(InpBotName, ": Failed to create Scalp indicator handles!");
+         return INIT_FAILED;
+      }
+      ArraySetAsSeries(bScalpFast, true);
+      ArraySetAsSeries(bScalpSlow, true);
+      ArraySetAsSeries(bScalpRSI,  true);
+      ArraySetAsSeries(bScalpATR,  true);
+   }
+
    ArraySetAsSeries(bTrendFast,  true);
    ArraySetAsSeries(bTrendSlow,  true);
    ArraySetAsSeries(bEntryFast,  true);
@@ -196,16 +239,23 @@ int OnInit()
    ArraySetAsSeries(bATR,        true);
    ArraySetAsSeries(bRSI,        true);
 
-   PrintFormat("══ %s Initialized | %s | TrendTF: %s | Risk: %.1f%% | MinSignals: %d/4 | RSI:%s ══",
-               InpBotName, _Symbol, EnumToString(InpTrendTF),
-               InpRiskPercent, InpMinSignals, InpUseRSI?"ON":"OFF");
+   if(InpScalpMode)
+      PrintFormat("══ %s [SCALP MODE] | %s | ScalpTF:%s | EMA%d/%d | TP:%.0fpts SL:%.0fpts | Risk:%.1f%% ══",
+                  InpBotName, _Symbol, EnumToString(InpScalpTF),
+                  InpScalpEMAFast, InpScalpEMASlow,
+                  InpScalpTPPoints, InpScalpSLPoints, InpScalpRiskPct);
+   else
+      PrintFormat("══ %s Initialized | %s | TrendTF: %s | Risk: %.1f%% | MinSignals: %d/4 | RSI:%s ══",
+                  InpBotName, _Symbol, EnumToString(InpTrendTF),
+                  InpRiskPercent, InpMinSignals, InpUseRSI?"ON":"OFF");
    return INIT_SUCCEEDED;
 }
 
 void OnDeinit(const int reason)
 {
    int handles[] = {hTrendEMAFast, hTrendEMASlow, hEntryEMAFast, hEntryEMASlow,
-                    hMACD, hBB, hSAR, hATR, hRSI};
+                    hMACD, hBB, hSAR, hATR, hRSI,
+                    hScalpEMAFast, hScalpEMASlow, hScalpRSI, hScalpATR};
    for(int i = 0; i < ArraySize(handles); i++)
       if(handles[i] != INVALID_HANDLE) IndicatorRelease(handles[i]);
 }
@@ -216,6 +266,13 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
+   // ── Scalp Mode: takes full control (bypass trend following) ──────
+   if(InpScalpMode)
+   {
+      ManageScalpMode();
+      return;
+   }
+
    // Trailing stop — every tick
    if(InpUseTrailing) ManageTrailingStop();
 
@@ -306,6 +363,149 @@ int GetTrendDirection()
    if(fastEMA > slowEMA) return  1; // Uptrend
    if(fastEMA < slowEMA) return -1; // Downtrend
    return 0;
+}
+
+//===================================================================
+//  SCALP MODE — เปิด-ปิดเร็วบน TF เล็ก (M1/M5)
+//===================================================================
+
+bool RefreshScalpIndicators()
+{
+   if(CopyBuffer(hScalpEMAFast, 0, 0, 4, bScalpFast) < 4) return false;
+   if(CopyBuffer(hScalpEMASlow, 0, 0, 4, bScalpSlow) < 4) return false;
+   if(CopyBuffer(hScalpRSI,    0, 0, 4, bScalpRSI)   < 4) return false;
+   if(CopyBuffer(hScalpATR,    0, 0, 4, bScalpATR)   < 4) return false;
+   return true;
+}
+
+void ExecuteScalpEntry(ENUM_ORDER_TYPE type, double atrVal)
+{
+   double ask    = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   double bid    = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   int    digits = (int)SymbolInfoInteger(_Symbol, SYMBOL_DIGITS);
+   double point  = SymbolInfoDouble(_Symbol, SYMBOL_POINT);
+   double price  = (type == ORDER_TYPE_BUY) ? ask : bid;
+
+   double tpDist = InpScalpTPPoints * point;
+   double slDist = InpScalpSLPoints * point;
+
+   double tp = (type == ORDER_TYPE_BUY) ? NormalizeDouble(price + tpDist, digits)
+                                        : NormalizeDouble(price - tpDist, digits);
+   double sl = (type == ORDER_TYPE_BUY) ? NormalizeDouble(price - slDist, digits)
+                                        : NormalizeDouble(price + slDist, digits);
+
+   double lot;
+   if(InpScalpAutoLot && slDist > 0)
+   {
+      double balance  = AccountInfoDouble(ACCOUNT_BALANCE);
+      double riskAmt  = balance * InpScalpRiskPct / 100.0;
+      double tickSz   = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
+      double tickVal  = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
+      double valPerPt = (tickSz > 0 && tickVal > 0) ? (tickVal / tickSz) * point : 0;
+      lot = (valPerPt > 0) ? riskAmt / (InpScalpSLPoints * valPerPt) : InpScalpFixedLot;
+   }
+   else
+      lot = InpScalpFixedLot;
+
+   lot = NormalizeLot(lot);
+
+   bool ok = (type == ORDER_TYPE_BUY)
+             ? trade.Buy(lot,  _Symbol, ask, sl, tp, InpBotName + "_S")
+             : trade.Sell(lot, _Symbol, bid, sl, tp, InpBotName + "_S");
+
+   if(ok)
+      PrintFormat("[%s SCALP OPEN] %s | Price:%.5f | Lot:%.2f | SL:%.5f | TP:%.5f | ATR:%.5f",
+                  InpBotName, (type==ORDER_TYPE_BUY)?"LONG":"SHORT",
+                  price, lot, sl, tp, atrVal);
+   else
+      PrintFormat("[%s SCALP ERROR] Open failed: %d", InpBotName, GetLastError());
+}
+
+void ManageScalpMode()
+{
+   // ── ทำงานทุก bar ใหม่บน Scalp TF เท่านั้น ───────────────────────
+   datetime scalpBar = iTime(_Symbol, InpScalpTF, 0);
+   if(scalpBar == gLastScalpBar) return;
+   gLastScalpBar = scalpBar;
+
+   if(!CheckSpread())                   return;
+   if(InpUseSession && !IsInSession())  return;
+   if(IsMaxDrawdown())                  return;
+   if(!RefreshScalpIndicators())        return;
+
+   double scalpATR = bScalpATR[1];
+   if(scalpATR > 0) gATRValue = scalpATR;  // ใช้ ATR ของ scalp TF
+
+   int buyCount  = CountPositions(POSITION_TYPE_BUY);
+   int sellCount = CountPositions(POSITION_TYPE_SELL);
+   int totalPos  = buyCount + sellCount;
+
+   // ── Quick Exit: ปิดเมื่อ EMA กลับทิศ ────────────────────────────
+   if(InpScalpQuickExit && totalPos > 0)
+   {
+      bool emaIsBull = (bScalpFast[1] > bScalpSlow[1]);
+      bool emaIsBear = (bScalpFast[1] < bScalpSlow[1]);
+
+      if(buyCount  > 0 && emaIsBear)
+      {
+         PrintFormat("[%s SCALP EXIT] LONG closed | EMA%d crossed below EMA%d | RSI=%.1f",
+                     InpBotName, InpScalpEMAFast, InpScalpEMASlow, bScalpRSI[1]);
+         CloseAllPositions();
+         buyCount = 0; totalPos = 0;  // อัพเดทหลัง close เพื่อเปิด short ได้ทันที
+      }
+      else if(sellCount > 0 && emaIsBull)
+      {
+         PrintFormat("[%s SCALP EXIT] SHORT closed | EMA%d crossed above EMA%d | RSI=%.1f",
+                     InpBotName, InpScalpEMAFast, InpScalpEMASlow, bScalpRSI[1]);
+         CloseAllPositions();
+         sellCount = 0; totalPos = 0;
+      }
+   }
+
+   if(totalPos >= InpScalpMaxPos) return;
+
+   // ── Higher TF Trend filter (optional) ───────────────────────────
+   int trend = 0;
+   if(InpScalpUseTrend)
+   {
+      double tFast[], tSlow[];
+      ArraySetAsSeries(tFast, true);
+      ArraySetAsSeries(tSlow, true);
+      if(CopyBuffer(hTrendEMAFast, 0, 0, 3, tFast) >= 3 &&
+         CopyBuffer(hTrendEMASlow, 0, 0, 3, tSlow) >= 3)
+         trend = (tFast[1] > tSlow[1]) ? 1 : -1;
+   }
+
+   // ── Scalp Entry Signals ──────────────────────────────────────────
+   // Signal 1: EMA crossover บน Scalp TF
+   bool emaBullCross = (bScalpFast[2] <= bScalpSlow[2]) && (bScalpFast[1] > bScalpSlow[1]);
+   bool emaBearCross = (bScalpFast[2] >= bScalpSlow[2]) && (bScalpFast[1] < bScalpSlow[1]);
+
+   // Signal 2: RSI ยืนยัน momentum
+   double rsi    = bScalpRSI[1];
+   bool rsiBull  = (rsi > 50.0);
+   bool rsiBear  = (rsi < 50.0);
+
+   bool goLong  = emaBullCross && rsiBull && (!InpScalpUseTrend || trend >= 0);
+   bool goShort = emaBearCross && rsiBear && (!InpScalpUseTrend || trend <= 0);
+
+   if(goLong)
+   {
+      PrintFormat("[%s SCALP ENTRY] LONG | EMA%d>EMA%d crossover | RSI=%.1f | Trend=%s",
+                  InpBotName, InpScalpEMAFast, InpScalpEMASlow, rsi, TrendName(trend));
+      ExecuteScalpEntry(ORDER_TYPE_BUY, scalpATR);
+   }
+   else if(goShort)
+   {
+      PrintFormat("[%s SCALP ENTRY] SHORT | EMA%d<EMA%d crossover | RSI=%.1f | Trend=%s",
+                  InpBotName, InpScalpEMAFast, InpScalpEMASlow, rsi, TrendName(trend));
+      ExecuteScalpEntry(ORDER_TYPE_SELL, scalpATR);
+   }
+   else if(InpDebugLog)
+   {
+      PrintFormat("[%s SCALP DEBUG] No signal | EMA fast=%.5f slow=%.5f | RSI=%.1f | Trend=%s",
+                  InpBotName, bScalpFast[1], bScalpSlow[1], rsi, TrendName(trend));
+   }
 }
 
 //===================================================================
