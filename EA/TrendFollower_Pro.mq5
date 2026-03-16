@@ -55,7 +55,7 @@ input int      InpTrendEMASlow    = 200;           // Slow EMA (trend TF)
 input bool     InpStrictTrend     = true;          // Strict: skip trade if trend unclear
 
 input group "═══ Entry Indicators (Current Timeframe) ═══"
-input int      InpMinSignals      = 2;             // Min confirmations needed (1-3)
+input int      InpMinSignals      = 2;             // Min confirmations needed (1-4)
 
 // EMA for entry
 input int      InpEntryEMAFast    = 20;            // Entry Fast EMA
@@ -66,15 +66,22 @@ input int      InpMACDFast        = 12;            // MACD Fast EMA
 input int      InpMACDSlow        = 26;            // MACD Slow EMA
 input int      InpMACDSignal      = 9;             // MACD Signal
 input bool     InpUseMACDHist     = true;          // Use MACD Histogram (histogram > 0 = bullish)
+input bool     InpMACDMomentum    = true;          // Require histogram growing (momentum building)
 
 // Bollinger Bands
 input int      InpBBPeriod        = 20;            // BB Period
 input double   InpBBDeviation     = 2.0;           // BB Deviation
-input bool     InpBBRequireClose  = true;          // Require close (not just touch) outside BB
+// BB Signal Mode: true=Pullback entry (cross above/below midline), false=Price position vs midline
+input bool     InpBBPullback      = true;          // BB Pullback: price crosses back above mid (buy dip)
 
 // Parabolic SAR
 input double   InpSARStep         = 0.02;          // SAR Step
 input double   InpSARMax          = 0.2;           // SAR Maximum
+
+// RSI (Signal 4 — optional)
+input bool     InpUseRSI          = true;          // Enable RSI as 4th signal
+input int      InpRSIPeriod       = 14;            // RSI Period
+input int      InpRSILevel        = 50;            // RSI threshold (Long: >level, Short: <100-level)
 
 input group "═══ ATR Risk Management ═══"
 input int      InpATRPeriod       = 14;            // ATR Period
@@ -128,13 +135,14 @@ int  hMACD         = INVALID_HANDLE;
 int  hBB           = INVALID_HANDLE;
 int  hSAR          = INVALID_HANDLE;
 int  hATR          = INVALID_HANDLE;
+int  hRSI          = INVALID_HANDLE;
 
 // Buffers
 double bTrendFast[], bTrendSlow[];
 double bEntryFast[], bEntrySlow[];
 double bMACDMain[], bMACDSignal[], bMACDHist[];
 double bBBUpper[], bBBLower[], bBBMid[];
-double bSAR[], bATR[];
+double bSAR[], bATR[], bRSI[];
 
 datetime gLastBar  = 0;
 double   gATRValue = 0;
@@ -161,11 +169,14 @@ int OnInit()
    hBB           = iBands(_Symbol, PERIOD_CURRENT, InpBBPeriod, 0, InpBBDeviation, PRICE_CLOSE);
    hSAR          = iSAR(_Symbol, PERIOD_CURRENT, InpSARStep, InpSARMax);
    hATR          = iATR(_Symbol, PERIOD_CURRENT, InpATRPeriod);
+   if(InpUseRSI)
+      hRSI       = iRSI(_Symbol, PERIOD_CURRENT, InpRSIPeriod, PRICE_CLOSE);
 
    if(hTrendEMAFast == INVALID_HANDLE || hTrendEMASlow == INVALID_HANDLE ||
       hEntryEMAFast == INVALID_HANDLE || hEntryEMASlow == INVALID_HANDLE ||
       hMACD         == INVALID_HANDLE || hBB           == INVALID_HANDLE ||
-      hSAR          == INVALID_HANDLE || hATR          == INVALID_HANDLE)
+      hSAR          == INVALID_HANDLE || hATR          == INVALID_HANDLE ||
+      (InpUseRSI && hRSI == INVALID_HANDLE))
    {
       Alert(InpBotName, ": Failed to create indicator handles!");
       return INIT_FAILED;
@@ -183,17 +194,18 @@ int OnInit()
    ArraySetAsSeries(bBBMid,      true);
    ArraySetAsSeries(bSAR,        true);
    ArraySetAsSeries(bATR,        true);
+   ArraySetAsSeries(bRSI,        true);
 
-   PrintFormat("══ %s Initialized | %s | TrendTF: %s | Risk: %.1f%% | MinSignals: %d/3 ══",
+   PrintFormat("══ %s Initialized | %s | TrendTF: %s | Risk: %.1f%% | MinSignals: %d/4 | RSI:%s ══",
                InpBotName, _Symbol, EnumToString(InpTrendTF),
-               InpRiskPercent, InpMinSignals);
+               InpRiskPercent, InpMinSignals, InpUseRSI?"ON":"OFF");
    return INIT_SUCCEEDED;
 }
 
 void OnDeinit(const int reason)
 {
    int handles[] = {hTrendEMAFast, hTrendEMASlow, hEntryEMAFast, hEntryEMASlow,
-                    hMACD, hBB, hSAR, hATR};
+                    hMACD, hBB, hSAR, hATR, hRSI};
    for(int i = 0; i < ArraySize(handles); i++)
       if(handles[i] != INVALID_HANDLE) IndicatorRelease(handles[i]);
 }
@@ -253,12 +265,12 @@ void OnTick()
                                    TrendName(trend), longSignals, shortSignals, gATRValue);
 
       if(InpDebugLog && longSignals < InpMinSignals && shortSignals < InpMinSignals)
-         PrintFormat("[%s DEBUG] Not enough signals — %s | MACDHist=%.5f | Close=%.5f BB[U=%.5f L=%.5f] | SAR=%.5f",
+         PrintFormat("[%s DEBUG] Not enough signals — %s | MACDHist=%.5f(prev=%.5f) | Close=%.5f BBMid=%.5f | SAR=%.5f | RSI=%.1f",
                      InpBotName, sigLog,
-                     bMACDHist[1],
+                     bMACDHist[1], bMACDHist[2],
                      iClose(_Symbol, PERIOD_CURRENT, 1),
-                     bBBUpper[1], bBBLower[1],
-                     bSAR[1]);
+                     bBBMid[1], bSAR[1],
+                     (InpUseRSI && ArraySize(bRSI) >= 2) ? bRSI[1] : -1.0);
 
       // LONG: trend up + enough signals
       if(trend >= 0 && longSignals >= InpMinSignals)
@@ -308,10 +320,18 @@ void GetEntrySignals(int &longSig, int &shortSig)
    // ── Signal 1: MACD ──────────────────────────────────────────────
    if(InpUseMACDHist)
    {
-      // Histogram: positive momentum (bullish), negative (bearish)
-      // Accept fresh crossover OR already in momentum direction
-      if(bMACDHist[1] > 0) longSig++;
-      if(bMACDHist[1] < 0) shortSig++;
+      if(InpMACDMomentum)
+      {
+         // Histogram positive AND growing (momentum building = higher quality entry)
+         if(bMACDHist[1] > 0 && bMACDHist[1] > bMACDHist[2]) longSig++;
+         if(bMACDHist[1] < 0 && bMACDHist[1] < bMACDHist[2]) shortSig++;
+      }
+      else
+      {
+         // Histogram direction only
+         if(bMACDHist[1] > 0) longSig++;
+         if(bMACDHist[1] < 0) shortSig++;
+      }
    }
    else
    {
@@ -320,21 +340,23 @@ void GetEntrySignals(int &longSig, int &shortSig)
       if(bMACDMain[2] >= bMACDSignal[2] && bMACDMain[1] < bMACDSignal[1]) shortSig++;
    }
 
-   // ── Signal 2: Bollinger Band breakout ──────────────────────────
+   // ── Signal 2: Bollinger Band ────────────────────────────────────
    double closeBar1 = iClose(_Symbol, PERIOD_CURRENT, 1);
    double closeBar2 = iClose(_Symbol, PERIOD_CURRENT, 2);
 
-   if(InpBBRequireClose)
+   if(InpBBPullback)
    {
-      // Close breaks OUT of BB (momentum breakout)
-      if(closeBar1 > bBBUpper[1])   longSig++;
-      if(closeBar1 < bBBLower[1])   shortSig++;
+      // Pullback entry: price crosses back above/below BB midline
+      // Long  = price dipped near mid then crosses back above (buy the dip in uptrend)
+      // Short = price rallied near mid then crosses back below (sell the bounce in downtrend)
+      if(closeBar2 <= bBBMid[2] && closeBar1 > bBBMid[1]) longSig++;
+      if(closeBar2 >= bBBMid[2] && closeBar1 < bBBMid[1]) shortSig++;
    }
    else
    {
-      // Price touches outer band
-      if(closeBar1 > bBBMid[1] && closeBar2 <= bBBMid[2]) longSig++;
-      if(closeBar1 < bBBMid[1] && closeBar2 >= bBBMid[2]) shortSig++;
+      // Simple position: price above midline = bullish, below = bearish
+      if(closeBar1 > bBBMid[1]) longSig++;
+      if(closeBar1 < bBBMid[1]) shortSig++;
    }
 
    // ── Signal 3: Parabolic SAR flip ───────────────────────────────
@@ -351,6 +373,14 @@ void GetEntrySignals(int &longSig, int &shortSig)
 
    if(sarWasAbove && sarNowBelow) longSig++;   // SAR flipped bullish
    if(sarWasBelow && sarNowAbove) shortSig++;  // SAR flipped bearish
+
+   // ── Signal 4: RSI (optional) ────────────────────────────────────
+   if(InpUseRSI && ArraySize(bRSI) >= 3)
+   {
+      // RSI above threshold = bullish momentum, below = bearish
+      if(bRSI[1] > InpRSILevel)            longSig++;
+      if(bRSI[1] < (100 - InpRSILevel))    shortSig++;
+   }
 }
 
 //===================================================================
@@ -586,6 +616,10 @@ bool RefreshAllIndicators()
    if(CopyBuffer(hBB,   0, 0, 4, bBBMid)              < 4) return false;
    if(CopyBuffer(hSAR,  0, 0, 4, bSAR)                < 4) return false;
    if(CopyBuffer(hATR,  0, 0, 4, bATR)                < 4) return false;
+   if(InpUseRSI && hRSI != INVALID_HANDLE)
+   {
+      if(CopyBuffer(hRSI, 0, 0, 4, bRSI)             < 4) return false;
+   }
    return true;
 }
 
