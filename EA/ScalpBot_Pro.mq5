@@ -45,8 +45,8 @@ input ENUM_TIMEFRAMES InpTrendTF   = PERIOD_H1;    // H1 สำหรับ XAUU
 input int             InpTrendEMA  = 50;           // EMA trend (ราคา > EMA = bullish)
 
 input group "═══ TP / SL (Fixed Points) ═══"
-input int    InpTP           = 200;     // Take Profit (จุด)
-input int    InpSL           = 100;     // Stop Loss (จุด)
+input int    InpTP           = 10000;   // Take Profit (จุด) — $10 สำหรับ XAUUSDm 3-digit
+input int    InpSL           = 5000;    // Stop Loss (จุด)  — $5 สำหรับ XAUUSDm 3-digit
 input int    InpCooldown     = 60;      // วินาที รอก่อน re-entry
 
 input group "═══ Lot Size ═══"
@@ -58,8 +58,8 @@ input double InpMinLot       = 0.01;
 
 input group "═══ Trailing Stop ═══"
 input bool   InpTrail        = true;    // เปิด Trailing
-input int    InpTrailStart   = 100;     // เริ่ม trail เมื่อกำไร >= จุดนี้
-input int    InpTrailDist    = 80;      // ระยะ trail (จุด)
+input int    InpTrailStart   = 5000;    // เริ่ม trail เมื่อกำไร >= จุดนี้
+input int    InpTrailDist    = 3000;    // ระยะ trail (จุด)
 
 input group "═══ Protection ═══"
 input double InpMaxDD        = 15.0;   // หยุด trade เมื่อ DD >= %
