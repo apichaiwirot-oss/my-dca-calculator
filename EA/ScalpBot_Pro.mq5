@@ -1,24 +1,24 @@
 //+------------------------------------------------------------------+
 //|                                              ScalpBot_Pro.mq5    |
 //|                           Pure Scalping EA — XAUUSD / Forex      |
-//|                           Version 1.0                            |
+//|                           Version 1.1                            |
 //+------------------------------------------------------------------+
 //
-//  STRATEGY (Simple & Fast)
+//  STRATEGY
 //  ─────────────────────────
-//  Chart   : M5 หรือ M15
+//  Chart   : M1 หรือ M5 (แนะนำ M5)
 //  Entry   : EMA Fast ตัด EMA Slow (crossover) + RSI ยืนยัน
 //  Trend   : EMA บน Higher TF กรองทิศทาง (ปิดได้)
-//  TP      : Fixed จุด (200 pts default)
-//  SL      : Fixed จุด (100 pts default)
+//  TP      : Fixed จุด
+//  SL      : Fixed จุด
 //  Re-entry: ทันทีหลัง TP/SL hit + cooldown timer
 //
-//  XAUUSD 1 point = 0.01 USD
-//  200 pts = $2 movement → กำไร $200/lot ต่อ trade
+//  XAUUSDm Exness (3-digit, point=0.001)
+//  10000 pts = $10 TP | 5000 pts = $5 SL
 //
 //+------------------------------------------------------------------+
 #property copyright "ScalpBot Pro"
-#property version   "1.00"
+#property version   "1.10"
 #property description "Pure Scalp EA | EMA Cross + RSI | Fixed TP/SL | Auto Re-entry"
 
 #include <Trade\Trade.mqh>
