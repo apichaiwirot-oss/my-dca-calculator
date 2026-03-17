@@ -36,11 +36,11 @@ input group "═══ Entry Signal (Current Chart TF) ═══"
 input int    InpEMAFast      = 5;       // EMA เร็ว (crossover entry)
 input int    InpEMASlow      = 20;      // EMA ช้า
 input int    InpRSIPeriod    = 7;       // RSI Period
-input int    InpRSIBull      = 52;      // RSI > ค่านี้ = อนุญาต Long
-input int    InpRSIBear      = 48;      // RSI < ค่านี้ = อนุญาต Short
+input int    InpRSIBull      = 50;      // RSI > ค่านี้ = อนุญาต Long
+input int    InpRSIBear      = 50;      // RSI < ค่านี้ = อนุญาต Short
 
 input group "═══ Trend Filter (Higher TF) ═══"
-input bool            InpUseTrend  = true;         // เปิด/ปิด trend filter
+input bool            InpUseTrend  = false;        // เปิด/ปิด trend filter
 input ENUM_TIMEFRAMES InpTrendTF   = PERIOD_H1;    // H1 สำหรับ XAUUSD
 input int             InpTrendEMA  = 50;           // EMA trend (ราคา > EMA = bullish)
 
@@ -63,7 +63,7 @@ input int    InpTrailDist    = 80;      // ระยะ trail (จุด)
 
 input group "═══ Protection ═══"
 input double InpMaxDD        = 15.0;   // หยุด trade เมื่อ DD >= %
-input int    InpMaxSpread    = 80;     // Max spread ที่ยอมรับ (จุด)
+input int    InpMaxSpread    = 200;    // Max spread ที่ยอมรับ (จุด)
 input int    InpSlippage     = 20;
 input int    InpMaxPos       = 1;      // Max positions พร้อมกัน
 
