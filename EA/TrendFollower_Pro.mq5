@@ -137,6 +137,7 @@ input bool            InpScalpQuickExit = true;       // Quick exit when EMA rev
 input bool            InpScalpRSIExit   = true;       // Quick exit when RSI crosses back 50 (ออกเร็ว)
 input int             InpScalpMaxBars   = 8;          // Force exit after N scalp bars (0=off)
 input int             InpScalpMaxPos    = 1;          // Max simultaneous scalp positions
+input int             InpScalpCooldownSecs = 30;      // Min seconds between entries (true tick-based scalping)
 
 //===================================================================
 //  GLOBAL VARIABLES
@@ -173,10 +174,10 @@ double bBBUpper[], bBBLower[], bBBMid[];
 double bSAR[], bATR[], bRSI[];
 double bScalpFast[], bScalpSlow[], bScalpRSI[], bScalpATR[], bScalpTrend[];
 
-datetime gLastBar      = 0;
-datetime gLastScalpBar = 0;
-double   gATRValue     = 0;
-int      gScalpOpenBar = 0;             // bar index when last scalp position opened
+datetime gLastBar       = 0;
+datetime gLastScalpTime = 0;            // last scalp entry time (tick-based cooldown)
+double   gATRValue      = 0;
+int      gScalpOpenBar  = 0;            // bar index when last scalp position opened
 
 //===================================================================
 //  INIT / DEINIT
@@ -250,12 +251,13 @@ int OnInit()
    ArraySetAsSeries(bRSI,        true);
 
    if(InpScalpMode)
-      PrintFormat("══ %s [SCALP MODE] | %s | ScalpTF:%s TrendTF:%s EMA%d | Entry EMA%d/%d | TP:%.0fpts SL:%.0fpts | EveryBar:%s RSIExit:%s MaxBars:%d ══",
+      PrintFormat("══ %s [SCALP MODE] | %s | ScalpTF:%s TrendTF:%s EMA%d | Entry EMA%d/%d | TP:%.0fpts SL:%.0fpts | EveryBar:%s RSIExit:%s MaxBars:%d | Cooldown:%ds ══",
                   InpBotName, _Symbol,
                   EnumToString(InpScalpTF), EnumToString(InpScalpTrendTF), InpScalpTrendEMA,
                   InpScalpEMAFast, InpScalpEMASlow,
                   InpScalpTPPoints, InpScalpSLPoints,
-                  InpScalpEveryBar?"ON":"OFF", InpScalpRSIExit?"ON":"OFF", InpScalpMaxBars);
+                  InpScalpEveryBar?"ON":"OFF", InpScalpRSIExit?"ON":"OFF", InpScalpMaxBars,
+                  InpScalpCooldownSecs);
    else
       PrintFormat("══ %s Initialized | %s | TrendTF: %s | Risk: %.1f%% | MinSignals: %d/4 | RSI:%s ══",
                   InpBotName, _Symbol, EnumToString(InpTrendTF),
@@ -436,11 +438,7 @@ void ExecuteScalpEntry(ENUM_ORDER_TYPE type, double atrVal)
 
 void ManageScalpMode()
 {
-   // ── ทำงานทุก bar ใหม่บน Scalp TF ────────────────────────────────
-   datetime scalpBar = iTime(_Symbol, InpScalpTF, 0);
-   if(scalpBar == gLastScalpBar) return;
-   gLastScalpBar = scalpBar;
-
+   // ── ทำงานทุก tick (true scalping) — exit เร็ว, entry ใช้ cooldown ──
    if(!CheckSpread())                   return;
    if(InpUseSession && !IsInSession())  return;
    if(IsMaxDrawdown())                  return;
@@ -503,6 +501,10 @@ void ManageScalpMode()
 
    if(totalPos >= InpScalpMaxPos) return;
 
+   // ── COOLDOWN GUARD — min seconds between entries ─────────────────
+   datetime now = TimeCurrent();
+   if((int)(now - gLastScalpTime) < InpScalpCooldownSecs) return;
+
    // ── TREND FILTER (M15 EMA) ───────────────────────────────────────
    int trend = 0;
    if(InpScalpUseTrend && ArraySize(bScalpTrend) >= 2)
@@ -534,19 +536,21 @@ void ManageScalpMode()
 
    if(goLong)
    {
-      PrintFormat("[%s SCALP ENTRY] LONG | EMA fast=%.5f>slow=%.5f | RSI=%.1f | Trend=%s | Mode:%s",
+      PrintFormat("[%s SCALP ENTRY] LONG | EMA fast=%.5f>slow=%.5f | RSI=%.1f | Trend=%s | Mode:%s | Cooldown:%ds",
                   InpBotName, bScalpFast[1], bScalpSlow[1], rsi,
-                  TrendName(trend), InpScalpEveryBar?"EveryBar":"Crossover");
+                  TrendName(trend), InpScalpEveryBar?"EveryBar":"Crossover", InpScalpCooldownSecs);
       ExecuteScalpEntry(ORDER_TYPE_BUY, scalpATR);
-      gScalpOpenBar = iBars(_Symbol, InpScalpTF);
+      gLastScalpTime = TimeCurrent();
+      gScalpOpenBar  = iBars(_Symbol, InpScalpTF);
    }
    else if(goShort)
    {
-      PrintFormat("[%s SCALP ENTRY] SHORT | EMA fast=%.5f<slow=%.5f | RSI=%.1f | Trend=%s | Mode:%s",
+      PrintFormat("[%s SCALP ENTRY] SHORT | EMA fast=%.5f<slow=%.5f | RSI=%.1f | Trend=%s | Mode:%s | Cooldown:%ds",
                   InpBotName, bScalpFast[1], bScalpSlow[1], rsi,
-                  TrendName(trend), InpScalpEveryBar?"EveryBar":"Crossover");
+                  TrendName(trend), InpScalpEveryBar?"EveryBar":"Crossover", InpScalpCooldownSecs);
       ExecuteScalpEntry(ORDER_TYPE_SELL, scalpATR);
-      gScalpOpenBar = iBars(_Symbol, InpScalpTF);
+      gLastScalpTime = TimeCurrent();
+      gScalpOpenBar  = iBars(_Symbol, InpScalpTF);
    }
    else if(InpDebugLog)
    {
