@@ -128,8 +128,8 @@ export default function AverageCostTab({ currency, userId }: Props) {
   if (loadingData) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
-        <span className="ml-3 text-[#7d8590] text-sm">กำลังโหลดข้อมูลพอร์ต...</span>
+        <div className="w-6 h-6 border-2 border-[#E50914] border-t-transparent rounded-full animate-spin" />
+        <span className="ml-3 text-[#808080] text-sm">กำลังโหลดข้อมูลพอร์ต...</span>
       </div>
     )
   }
@@ -139,10 +139,10 @@ export default function AverageCostTab({ currency, userId }: Props) {
       {/* LEFT: Input */}
       <div className="space-y-5">
         {/* Stock Info */}
-        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-5">
+        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-[#7d8590] uppercase tracking-wider flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-teal-400 inline-block" />
+            <h2 className="text-sm font-semibold text-[#808080] uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#E50914] inline-block" />
               ข้อมูลหุ้น
             </h2>
             <div className="flex gap-2">
@@ -150,7 +150,7 @@ export default function AverageCostTab({ currency, userId }: Props) {
               <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleCSVUpload} />
               <button
                 onClick={() => fileRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0d1117] border border-[#30363d] text-xs text-[#7d8590] hover:text-cyan-400 hover:border-cyan-500 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141414] border border-[#2a2a2a] text-xs text-[#808080] hover:text-white hover:border-[#555] transition-colors"
               >
                 <Upload size={12} /> Import CSV
               </button>
@@ -161,7 +161,7 @@ export default function AverageCostTab({ currency, userId }: Props) {
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   saved
                     ? 'bg-green-900/30 border border-green-700 text-green-400'
-                    : 'bg-teal-900/30 border border-teal-700 text-teal-400 hover:bg-teal-900/50'
+                    : 'bg-red-900/20 border border-[#b91c1c] text-[#E50914] hover:bg-red-900/30'
                 } disabled:opacity-60`}
               >
                 {saved ? <CheckCircle size={12} /> : <Save size={12} />}
@@ -171,30 +171,30 @@ export default function AverageCostTab({ currency, userId }: Props) {
           </div>
 
           <div className="mb-4">
-            <label className="block text-xs text-[#7d8590] mb-1.5">ชื่อหุ้น / SYMBOL</label>
+            <label className="block text-xs text-[#808080] mb-1.5">ชื่อหุ้น / SYMBOL</label>
             <input
               type="text"
               value={symbol}
               onChange={e => setSymbol(e.target.value.toUpperCase())}
               placeholder="AAPL, NVDA, BTC, PTT.BK ..."
-              className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2.5 text-sm focus:border-teal-500 focus:outline-none transition-colors placeholder-[#484f58]"
+              className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-sm focus:border-[#E50914] focus:outline-none transition-colors placeholder-[#555]"
             />
           </div>
 
           {/* CSV Format hint */}
-          <div className="mb-4 p-3 rounded-lg bg-[#0d1117] border border-[#21262d] text-xs text-[#484f58]">
-            📋 รูปแบบ CSV: <code className="text-teal-500">จำนวนหุ้น, ราคา</code> (แต่ละรอบ 1 บรรทัด)
-            <br/>ตัวอย่าง: <code className="text-[#7d8590]">100, 150.50</code>
+          <div className="mb-4 p-3 rounded-lg bg-[#141414] border border-[#1e1e1e] text-xs text-[#555]">
+            📋 รูปแบบ CSV: <code className="text-[#E50914]">จำนวนหุ้น, ราคา</code> (แต่ละรอบ 1 บรรทัด)
+            <br/>ตัวอย่าง: <code className="text-[#808080]">100, 150.50</code>
           </div>
 
           {/* Buy Rounds */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs text-[#7d8590]">รอบการซื้อ</label>
-              <span className="text-xs text-[#484f58]">{rounds.length} รอบ</span>
+              <label className="text-xs text-[#808080]">รอบการซื้อ</label>
+              <span className="text-xs text-[#555]">{rounds.length} รอบ</span>
             </div>
             <div className="space-y-2">
-              <div className="grid grid-cols-12 gap-2 text-xs text-[#484f58] px-1">
+              <div className="grid grid-cols-12 gap-2 text-xs text-[#555] px-1">
                 <span className="col-span-1">#</span>
                 <span className="col-span-5">จำนวนหุ้น</span>
                 <span className="col-span-5">ราคา ({currency})</span>
@@ -202,23 +202,23 @@ export default function AverageCostTab({ currency, userId }: Props) {
               </div>
               {rounds.map((r, i) => (
                 <div key={r.id} className="grid grid-cols-12 gap-2 items-center">
-                  <span className="col-span-1 text-xs text-[#484f58] text-center">{i + 1}</span>
+                  <span className="col-span-1 text-xs text-[#555] text-center">{i + 1}</span>
                   <input
                     type="number" min="0" value={r.shares || ''}
                     onChange={e => updateRound(r.id, 'shares', parseFloat(e.target.value) || 0)}
                     placeholder="100"
-                    className="col-span-5 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-sm focus:border-teal-500 focus:outline-none transition-colors"
+                    className="col-span-5 bg-[#141414] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm focus:border-[#E50914] focus:outline-none transition-colors"
                   />
                   <input
                     type="number" min="0" step="0.01" value={r.pricePerShare || ''}
                     onChange={e => updateRound(r.id, 'pricePerShare', parseFloat(e.target.value) || 0)}
                     placeholder="150.00"
-                    className="col-span-5 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-sm focus:border-teal-500 focus:outline-none transition-colors"
+                    className="col-span-5 bg-[#141414] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm focus:border-[#E50914] focus:outline-none transition-colors"
                   />
                   <button
                     onClick={() => removeRound(r.id)}
                     disabled={rounds.length === 1}
-                    className="col-span-1 p-1.5 rounded-lg text-[#484f58] hover:text-red-400 hover:bg-red-950/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="col-span-1 p-1.5 rounded-lg text-[#555] hover:text-red-400 hover:bg-red-950/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -227,7 +227,7 @@ export default function AverageCostTab({ currency, userId }: Props) {
             </div>
             <button
               onClick={addRound}
-              className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-[#30363d] text-xs text-[#7d8590] hover:border-teal-500 hover:text-teal-400 transition-colors"
+              className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-[#2a2a2a] text-xs text-[#808080] hover:border-[#E50914] hover:text-[#E50914] transition-colors"
             >
               <Plus size={13} /> เพิ่มรอบการซื้อ
             </button>
@@ -235,13 +235,13 @@ export default function AverageCostTab({ currency, userId }: Props) {
 
           {/* Current Price */}
           <div className="mt-4">
-            <label className="block text-xs text-[#7d8590] mb-1.5">ราคาตลาดปัจจุบัน ({currency})</label>
+            <label className="block text-xs text-[#808080] mb-1.5">ราคาตลาดปัจจุบัน ({currency})</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#7d8590]">{currency}</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#808080]">{currency}</span>
               <input
                 type="number" min="0" step="0.01" value={currentPrice || ''}
                 onChange={e => setCurrentPrice(parseFloat(e.target.value) || 0)}
-                className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg pl-8 pr-3 py-2.5 text-sm focus:border-teal-500 focus:outline-none transition-colors"
+                className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg pl-8 pr-3 py-2.5 text-sm focus:border-[#E50914] focus:outline-none transition-colors"
                 placeholder="170.00"
               />
             </div>
@@ -249,56 +249,56 @@ export default function AverageCostTab({ currency, userId }: Props) {
         </div>
 
         {/* Add More Shares */}
-        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-[#7d8590] uppercase tracking-wider mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 inline-block" />
+        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-[#808080] uppercase tracking-wider mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-white inline-block" />
             จำลองการซื้อเพิ่ม
           </h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-xs text-[#7d8590] mb-1.5">จำนวนหุ้น</label>
+              <label className="block text-xs text-[#808080] mb-1.5">จำนวนหุ้น</label>
               <input
                 type="number" min="0" value={addShares || ''}
                 onChange={e => setAddShares(parseFloat(e.target.value) || 0)}
                 placeholder="50"
-                className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2.5 text-sm focus:border-cyan-500 focus:outline-none transition-colors"
+                className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-sm focus:border-[#E50914] focus:outline-none transition-colors"
               />
             </div>
             <div>
-              <label className="block text-xs text-[#7d8590] mb-1.5">ราคาที่จะซื้อ ({currency})</label>
+              <label className="block text-xs text-[#808080] mb-1.5">ราคาที่จะซื้อ ({currency})</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#7d8590]">{currency}</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#808080]">{currency}</span>
                 <input
                   type="number" min="0" step="0.01" value={addPrice || ''}
                   onChange={e => setAddPrice(parseFloat(e.target.value) || 0)}
                   placeholder="130.00"
-                  className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg pl-8 pr-3 py-2.5 text-sm focus:border-cyan-500 focus:outline-none transition-colors"
+                  className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg pl-8 pr-3 py-2.5 text-sm focus:border-[#E50914] focus:outline-none transition-colors"
                 />
               </div>
             </div>
           </div>
           {hasPreview && (
-            <div className="p-3 rounded-lg bg-cyan-950/20 border border-cyan-900/40 text-sm">
-              <div className="flex items-center gap-2 text-cyan-400 text-xs mb-2 font-medium">
+            <div className="p-3 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-sm">
+              <div className="flex items-center gap-2 text-[#b3b3b3] text-xs mb-2 font-medium">
                 <AlertCircle size={12} /> ผลหลังซื้อเพิ่ม
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <div className="text-[#7d8590]">ต้นทุนเฉลี่ยใหม่</div>
-                  <div className="font-semibold text-cyan-300">{fmtCurrency(previewStats.averageCost, currency)}</div>
+                  <div className="text-[#808080]">ต้นทุนเฉลี่ยใหม่</div>
+                  <div className="font-semibold text-[#e0e0e0]">{fmtCurrency(previewStats.averageCost, currency)}</div>
                 </div>
                 <div>
-                  <div className="text-[#7d8590]">เปลี่ยนจากเดิม</div>
+                  <div className="text-[#808080]">เปลี่ยนจากเดิม</div>
                   <div className={`font-semibold ${previewStats.averageCost < stats.averageCost ? 'text-green-400' : 'text-red-400'}`}>
                     {previewStats.averageCost < stats.averageCost ? '▼' : '▲'} {fmtCurrency(Math.abs(previewStats.averageCost - stats.averageCost), currency)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[#7d8590]">หุ้นรวม</div>
+                  <div className="text-[#808080]">หุ้นรวม</div>
                   <div className="font-semibold">{fmt(previewStats.totalShares)} หุ้น</div>
                 </div>
                 <div>
-                  <div className="text-[#7d8590]">ลงทุนรวม</div>
+                  <div className="text-[#808080]">ลงทุนรวม</div>
                   <div className="font-semibold">{fmtCurrency(previewStats.totalInvested, currency)}</div>
                 </div>
               </div>
@@ -306,18 +306,18 @@ export default function AverageCostTab({ currency, userId }: Props) {
           )}
 
           {/* Target Avg */}
-          <div className="mt-4 pt-4 border-t border-[#21262d]">
-            <div className="flex items-center gap-2 text-xs text-[#7d8590] mb-2">
+          <div className="mt-4 pt-4 border-t border-[#1e1e1e]">
+            <div className="flex items-center gap-2 text-xs text-[#808080] mb-2">
               <Target size={12} className="text-yellow-400" />
               ต้องการลด average ลงเหลือ ({currency})
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#7d8590]">{currency}</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#808080]">{currency}</span>
               <input
                 type="number" min="0" step="0.01" value={targetAvg || ''}
                 onChange={e => setTargetAvg(parseFloat(e.target.value) || 0)}
                 placeholder="target avg..."
-                className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg pl-8 pr-3 py-2.5 text-sm focus:border-yellow-500 focus:outline-none transition-colors"
+                className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg pl-8 pr-3 py-2.5 text-sm focus:border-yellow-500 focus:outline-none transition-colors"
               />
             </div>
             {sharesNeeded !== null && addPrice > 0 && targetAvg > 0 && (
@@ -328,7 +328,7 @@ export default function AverageCostTab({ currency, userId }: Props) {
                     <br /><span className="text-yellow-500">ใช้เงินเพิ่ม: {fmtCurrency(sharesNeeded * addPrice, currency)}</span>
                   </p>
                 ) : (
-                  <p className="text-xs text-[#7d8590]">ราคาซื้อต้องต่ำกว่า target และ avg ปัจจุบัน</p>
+                  <p className="text-xs text-[#808080]">ราคาซื้อต้องต่ำกว่า target และ avg ปัจจุบัน</p>
                 )}
               </div>
             )}
@@ -338,9 +338,9 @@ export default function AverageCostTab({ currency, userId }: Props) {
 
       {/* RIGHT: Results */}
       <div className="space-y-4">
-        <div className="bg-gradient-to-br from-[#0d1f1f] to-[#0d1117] border border-teal-900/40 rounded-xl p-6 text-center">
-          <p className="text-xs text-[#7d8590] mb-1">มูลค่าพอร์ตปัจจุบัน{symbol ? ` · ${symbol}` : ''}</p>
-          <div className={`text-4xl font-bold tracking-tight mb-1 ${isProfit ? 'text-teal-300' : 'text-red-300'}`}>
+        <div className="bg-gradient-to-br from-[#1a0000] to-[#141414] border border-red-900/30 rounded-xl p-6 text-center">
+          <p className="text-xs text-[#808080] mb-1">มูลค่าพอร์ตปัจจุบัน{symbol ? ` · ${symbol}` : ''}</p>
+          <div className={`text-4xl font-bold tracking-tight mb-1 ${isProfit ? 'text-[#ff6b6b]' : 'text-red-300'}`}>
             {fmtCurrency(stats.currentValue, currency)}
           </div>
           <div className={`flex items-center justify-center gap-2 text-sm font-medium ${isProfit ? 'text-green-400' : 'text-red-400'}`}>
@@ -362,8 +362,8 @@ export default function AverageCostTab({ currency, userId }: Props) {
         </div>
 
         {stats.totalShares > 0 && (
-          <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4">
-            <h3 className="text-xs font-semibold text-[#7d8590] uppercase tracking-wider mb-3">วิเคราะห์</h3>
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-4">
+            <h3 className="text-xs font-semibold text-[#808080] uppercase tracking-wider mb-3">วิเคราะห์</h3>
             <div className="space-y-2.5 text-sm">
               <InfoRow label="ราคา break-even" value={fmtCurrency(stats.averageCost, currency)} hint="คืนทุนที่ราคานี้" />
               <InfoRow
@@ -373,21 +373,21 @@ export default function AverageCostTab({ currency, userId }: Props) {
                 valueColor={currentPrice >= stats.averageCost ? 'text-green-400' : 'text-red-400'}
               />
               <InfoRow label="ถ้าราคา +10%" value={fmtCurrency(stats.totalShares * currentPrice * 1.1, currency)} hint={`+${fmtCurrency(stats.totalShares * currentPrice * 0.1, currency)}`} />
-              <InfoRow label="ถ้าราคา -10%" value={fmtCurrency(stats.totalShares * currentPrice * 0.9, currency)} hint={`-${fmtCurrency(stats.totalShares * currentPrice * 0.1, currency)}`} valueColor="text-[#7d8590]" />
+              <InfoRow label="ถ้าราคา -10%" value={fmtCurrency(stats.totalShares * currentPrice * 0.9, currency)} hint={`-${fmtCurrency(stats.totalShares * currentPrice * 0.1, currency)}`} valueColor="text-[#808080]" />
             </div>
           </div>
         )}
 
         {rounds.length > 1 && (
-          <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4">
-            <h3 className="text-xs font-semibold text-[#7d8590] uppercase tracking-wider mb-3">สรุปรอบการซื้อ</h3>
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-4">
+            <h3 className="text-xs font-semibold text-[#808080] uppercase tracking-wider mb-3">สรุปรอบการซื้อ</h3>
             <div className="space-y-1.5">
               {rounds.map((r, i) => {
                 if (!r.shares || !r.pricePerShare) return null
                 const pnl = r.shares * currentPrice - r.shares * r.pricePerShare
                 return (
                   <div key={r.id} className="flex items-center justify-between text-xs">
-                    <span className="text-[#7d8590]">รอบ {i + 1}</span>
+                    <span className="text-[#808080]">รอบ {i + 1}</span>
                     <span>{fmt(r.shares)} × {fmtCurrency(r.pricePerShare, currency)}</span>
                     <span className={pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
                       {pnl >= 0 ? '+' : ''}{fmtCurrency(pnl, currency)}
@@ -405,10 +405,10 @@ export default function AverageCostTab({ currency, userId }: Props) {
 
 function StatCard({ label, value, sub, color = 'text-white' }: { label: string; value: string; sub: string; color?: string }) {
   return (
-    <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4">
-      <p className="text-xs text-[#7d8590] mb-1">{label}</p>
+    <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-4">
+      <p className="text-xs text-[#808080] mb-1">{label}</p>
       <p className={`text-lg font-bold ${color}`}>{value}</p>
-      <p className="text-xs text-[#484f58]">{sub}</p>
+      <p className="text-xs text-[#555]">{sub}</p>
     </div>
   )
 }
@@ -417,8 +417,8 @@ function InfoRow({ label, value, hint, valueColor = 'text-white' }: { label: str
   return (
     <div className="flex items-center justify-between">
       <div>
-        <span className="text-[#7d8590]">{label}</span>
-        <span className="text-xs text-[#484f58] ml-2">{hint}</span>
+        <span className="text-[#808080]">{label}</span>
+        <span className="text-xs text-[#555] ml-2">{hint}</span>
       </div>
       <span className={`font-semibold ${valueColor}`}>{value}</span>
     </div>

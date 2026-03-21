@@ -17,7 +17,7 @@ interface Asset {
   color: string
 }
 
-const COLORS = ['#14b8a6', '#f59e0b', '#8b5cf6', '#ef4444']
+const COLORS = ['#E50914', '#f59e0b', '#8b5cf6', '#3b82f6']
 
 const DEFAULT_ASSETS: Asset[] = [
   { name: 'หุ้น A', startPrice: 100, endPrice: 180, volatility: 0.2, color: COLORS[0] },
@@ -84,7 +84,7 @@ export default function CompareTab({ currency }: Props) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
     return (
-      <div className="bg-[#1c2128] border border-[#30363d] rounded-lg p-3 text-xs shadow-xl max-w-xs">
+      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 text-xs shadow-xl max-w-xs">
         <p className="font-semibold text-white mb-2">{label}</p>
         {payload.map((p: { name: string; value: number; color: string }) => (
           <div key={p.name} className="flex justify-between gap-4 mb-0.5">
@@ -99,37 +99,37 @@ export default function CompareTab({ currency }: Props) {
   return (
     <div className="space-y-5">
       {/* Global Config */}
-      <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-5">
+      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-[#7d8590] uppercase tracking-wider flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-teal-400 inline-block" />
+          <h2 className="text-sm font-semibold text-[#808080] uppercase tracking-wider flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#E50914] inline-block" />
             ตั้งค่าการเปรียบเทียบ
           </h2>
           <button
             onClick={() => setSeed(s => s + 1)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0d1117] border border-[#30363d] text-xs text-[#7d8590] hover:text-white hover:border-teal-500 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141414] border border-[#2a2a2a] text-xs text-[#808080] hover:text-white hover:border-[#E50914] transition-colors"
           >
             <RefreshCw size={12} /> สุ่มใหม่
           </button>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-[#7d8590] mb-1.5">เงินลงทุนต่องวด ({currency})</label>
+            <label className="block text-xs text-[#808080] mb-1.5">เงินลงทุนต่องวด ({currency})</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#7d8590]">{currency}</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#808080]">{currency}</span>
               <input
                 type="number" min="1" value={investment}
                 onChange={e => setInvestment(Math.max(1, parseFloat(e.target.value) || 1))}
-                className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg pl-8 pr-3 py-2.5 text-sm focus:border-teal-500 focus:outline-none transition-colors"
+                className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg pl-8 pr-3 py-2.5 text-sm focus:border-[#E50914] focus:outline-none transition-colors"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-[#7d8590] mb-1.5">จำนวนงวด (เหมือนกันทุกหุ้น)</label>
+            <label className="block text-xs text-[#808080] mb-1.5">จำนวนงวด (เหมือนกันทุกหุ้น)</label>
             <input
               type="number" min="2" max="120" value={periods}
               onChange={e => setPeriods(Math.min(120, Math.max(2, parseInt(e.target.value) || 2)))}
-              className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2.5 text-sm focus:border-teal-500 focus:outline-none transition-colors"
+              className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-sm focus:border-[#E50914] focus:outline-none transition-colors"
             />
           </div>
         </div>
@@ -140,7 +140,7 @@ export default function CompareTab({ currency }: Props) {
         {assets.map((asset, ai) => (
           <div
             key={ai}
-            className="bg-[#161b22] border rounded-xl p-4 transition-colors"
+            className="bg-[#1a1a1a] border rounded-xl p-4 transition-colors"
             style={{ borderColor: asset.color + '40' }}
           >
             <div className="flex items-center justify-between mb-3">
@@ -150,13 +150,13 @@ export default function CompareTab({ currency }: Props) {
                   type="text"
                   value={asset.name}
                   onChange={e => updateAsset(ai, 'name', e.target.value)}
-                  className="bg-transparent text-sm font-semibold focus:outline-none border-b border-transparent focus:border-[#30363d] transition-colors w-24"
+                  className="bg-transparent text-sm font-semibold focus:outline-none border-b border-transparent focus:border-[#2a2a2a] transition-colors w-24"
                 />
               </div>
               {assets.length > 2 && (
                 <button
                   onClick={() => removeAsset(ai)}
-                  className="text-xs text-[#484f58] hover:text-red-400 transition-colors px-2"
+                  className="text-xs text-[#555] hover:text-red-400 transition-colors px-2"
                 >
                   ลบ
                 </button>
@@ -166,31 +166,31 @@ export default function CompareTab({ currency }: Props) {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs text-[#484f58] mb-1">ราคาเริ่มต้น</label>
+                  <label className="block text-xs text-[#555] mb-1">ราคาเริ่มต้น</label>
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-[#484f58]">{currency}</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-[#555]">{currency}</span>
                     <input
                       type="number" min="0.01" step="0.01" value={asset.startPrice}
                       onChange={e => updateAsset(ai, 'startPrice', parseFloat(e.target.value) || 0.01)}
-                      className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg pl-6 pr-2 py-2 text-sm focus:outline-none focus:border-teal-500"
+                      className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg pl-6 pr-2 py-2 text-sm focus:outline-none focus:border-[#E50914]"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-[#484f58] mb-1">ราคาสิ้นสุด</label>
+                  <label className="block text-xs text-[#555] mb-1">ราคาสิ้นสุด</label>
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-[#484f58]">{currency}</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-[#555]">{currency}</span>
                     <input
                       type="number" min="0.01" step="0.01" value={asset.endPrice}
                       onChange={e => updateAsset(ai, 'endPrice', parseFloat(e.target.value) || 0.01)}
-                      className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg pl-6 pr-2 py-2 text-sm focus:outline-none focus:border-teal-500"
+                      className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg pl-6 pr-2 py-2 text-sm focus:outline-none focus:border-[#E50914]"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-[#484f58] mb-1">
+                <label className="block text-xs text-[#555] mb-1">
                   ความผันผวน: <span className="text-white">{Math.round(asset.volatility * 100)}%</span>
                 </label>
                 <input
@@ -206,7 +206,7 @@ export default function CompareTab({ currency }: Props) {
                 const last = dataPerAsset[ai][dataPerAsset[ai].length - 1]
                 const isP = last.profitLoss >= 0
                 return (
-                  <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-[#21262d]">
+                  <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-[#1e1e1e]">
                     <MiniStat label="ลงทุนรวม" value={fmtCurrency(last.totalInvested, currency)} />
                     <MiniStat label="มูลค่า" value={fmtCurrency(last.portfolioValue, currency)} valueColor={isP ? 'text-green-400' : 'text-red-400'} />
                     <MiniStat label="ROI" value={`${isP ? '+' : ''}${fmt(last.profitLossPercent)}%`} valueColor={isP ? 'text-green-400' : 'text-red-400'} />
@@ -220,7 +220,7 @@ export default function CompareTab({ currency }: Props) {
         {assets.length < 4 && (
           <button
             onClick={addAsset}
-            className="bg-[#161b22] border border-dashed border-[#30363d] rounded-xl p-4 text-sm text-[#7d8590] hover:border-teal-500 hover:text-teal-400 transition-colors flex items-center justify-center gap-2 min-h-[120px]"
+            className="bg-[#1a1a1a] border border-dashed border-[#2a2a2a] rounded-xl p-4 text-sm text-[#808080] hover:border-[#E50914] hover:text-[#E50914] transition-colors flex items-center justify-center gap-2 min-h-[120px]"
           >
             + เพิ่มหุ้นเปรียบเทียบ
           </button>
@@ -229,11 +229,11 @@ export default function CompareTab({ currency }: Props) {
 
       {/* Comparison Chart */}
       {chartData.length > 0 && (
-        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-5">
+        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-5">
           <h3 className="text-sm font-semibold text-white mb-4">⚖️ กราฟเปรียบเทียบมูลค่าพอร์ต</h3>
           <ResponsiveContainer width="100%" height={340}>
             <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#21262d" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
               <XAxis
                 dataKey="name"
                 tick={{ fontSize: 10, fill: '#484f58' }}
@@ -277,16 +277,16 @@ export default function CompareTab({ currency }: Props) {
 
       {/* Ranking Table */}
       {dataPerAsset.every(d => d.length > 0) && (
-        <div className="bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-[#21262d]">
+        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-[#1e1e1e]">
             <h3 className="text-sm font-semibold text-white">🏆 ผลสรุปและจัดอันดับ</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#0d1117]">
+                <tr className="bg-[#141414]">
                   {['อันดับ', 'หุ้น', 'ลงทุนรวม', 'มูลค่าสุดท้าย', 'กำไร/ขาดทุน', 'ROI', 'avg cost'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d8590] font-medium">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-[#808080] font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -295,7 +295,7 @@ export default function CompareTab({ currency }: Props) {
                   .map((data, ai) => ({ ai, last: data[data.length - 1], asset: assets[ai] }))
                   .sort((a, b) => b.last.profitLossPercent - a.last.profitLossPercent)
                   .map(({ ai, last, asset }, rank) => (
-                    <tr key={ai} className="border-t border-[#21262d] hover:bg-[#1c2128] transition-colors">
+                    <tr key={ai} className="border-t border-[#1e1e1e] hover:bg-[#1a1a1a] transition-colors">
                       <td className="px-4 py-3">
                         <span className="text-lg">{['🥇', '🥈', '🥉', '4️⃣'][rank]}</span>
                       </td>
@@ -305,7 +305,7 @@ export default function CompareTab({ currency }: Props) {
                           <span className="font-medium">{asset.name}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-[#7d8590]">{fmtCurrency(last.totalInvested, currency)}</td>
+                      <td className="px-4 py-3 text-[#808080]">{fmtCurrency(last.totalInvested, currency)}</td>
                       <td className="px-4 py-3 font-semibold">{fmtCurrency(last.portfolioValue, currency)}</td>
                       <td className={`px-4 py-3 font-semibold ${last.profitLoss >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                         {last.profitLoss >= 0 ? '+' : ''}{fmtCurrency(last.profitLoss, currency)}
@@ -313,7 +313,7 @@ export default function CompareTab({ currency }: Props) {
                       <td className={`px-4 py-3 font-bold text-base ${last.profitLossPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                         {last.profitLossPercent >= 0 ? '+' : ''}{fmt(last.profitLossPercent)}%
                       </td>
-                      <td className="px-4 py-3 text-[#7d8590]">{fmtCurrency(last.averageCost, currency)}</td>
+                      <td className="px-4 py-3 text-[#808080]">{fmtCurrency(last.averageCost, currency)}</td>
                     </tr>
                   ))}
               </tbody>
@@ -328,7 +328,7 @@ export default function CompareTab({ currency }: Props) {
 function MiniStat({ label, value, valueColor = 'text-white' }: { label: string; value: string; valueColor?: string }) {
   return (
     <div>
-      <p className="text-xs text-[#484f58] mb-0.5">{label}</p>
+      <p className="text-xs text-[#555] mb-0.5">{label}</p>
       <p className={`text-xs font-semibold ${valueColor}`}>{value}</p>
     </div>
   )

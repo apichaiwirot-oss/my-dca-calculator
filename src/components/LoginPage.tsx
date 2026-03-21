@@ -19,30 +19,45 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d1117] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4"
+      style={{
+        background: 'radial-gradient(ellipse at 50% 0%, rgba(229,9,20,0.12) 0%, #141414 60%)',
+      }}
+    >
+      {/* Background pattern */}
+      <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 60px), repeating-linear-gradient(90deg, #fff 0px, #fff 1px, transparent 1px, transparent 60px)',
+        }}
+      />
+
+      <div className="relative w-full max-w-sm">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center font-bold text-2xl text-white shadow-xl shadow-teal-900/40 mx-auto mb-4">
-            D
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 rounded-2xl bg-[#E50914] flex items-center justify-center font-black text-4xl text-white shadow-2xl netflix-red-glow mx-auto mb-5">
+            N
           </div>
-          <h1 className="text-2xl font-bold text-white">DCA Calculator Pro</h1>
-          <p className="text-sm text-[#7d8590] mt-1">
+          <h1 className="text-3xl font-black tracking-tight text-white">
+            DCA <span className="text-[#E50914]">Pro</span>
+          </h1>
+          <p className="text-sm text-[#808080] mt-2">
             คำนวณ DCA · ลดค่าเฉลี่ย · ติดตามพอร์ต
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#161b22] border border-[#30363d] rounded-2xl p-8">
-          <h2 className="text-lg font-semibold text-white mb-2">เข้าสู่ระบบ</h2>
-          <p className="text-sm text-[#7d8590] mb-6">
-            ข้อมูลพอร์ตของคุณจะถูกบันทึกและซิงค์ทุกอุปกรณ์
+        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-8">
+          <h2 className="text-lg font-bold text-white mb-1">เข้าสู่ระบบ</h2>
+          <p className="text-sm text-[#808080] mb-6">
+            พอร์ตของคุณจะถูกบันทึกและซิงค์ทุกอุปกรณ์
           </p>
 
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white text-gray-800 font-medium hover:bg-gray-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-lg"
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white text-gray-800 font-semibold hover:bg-gray-100 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-lg"
           >
             {loading ? (
               <span className="w-5 h-5 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
@@ -54,16 +69,31 @@ export default function LoginPage() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
             )}
-            {loading ? 'กำลังเข้าสู่ระบบ...' : 'Sign in with Google'}
+            {loading ? 'กำลังนำไปยัง Google...' : 'Sign in with Google'}
           </button>
 
           {error && (
-            <p className="text-red-400 text-sm text-center mt-3">{error}</p>
+            <p className="text-[#E50914] text-sm text-center mt-3">{error}</p>
           )}
+
+          <div className="mt-6 pt-5 border-t border-[#222]">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                { icon: '📊', label: 'DCA Calculator' },
+                { icon: '📈', label: 'Simulator' },
+                { icon: '⚖️', label: 'Comparison' },
+              ].map(f => (
+                <div key={f.label} className="p-2 rounded-lg bg-[#111] border border-[#222]">
+                  <div className="text-lg mb-1">{f.icon}</div>
+                  <div className="text-[10px] text-[#555]">{f.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <p className="text-center text-xs text-[#484f58] mt-6">
-          ข้อมูลเพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน
+        <p className="text-center text-xs text-[#333] mt-6">
+          ข้อมูลเพื่อการศึกษาเท่านั้น · ไม่ใช่คำแนะนำการลงทุน
         </p>
       </div>
     </div>
