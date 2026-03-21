@@ -236,19 +236,19 @@ export default function CompareTab({ currency }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 10, fill: '#484f58' }}
+                tick={{ fontSize: 10, fill: '#555' }}
                 tickLine={false}
                 interval={Math.floor(chartData.length / 6)}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: '#484f58' }}
+                tick={{ fontSize: 10, fill: '#555' }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={v => `${currency}${(v / 1000).toFixed(0)}k`}
                 width={55}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '11px', color: '#7d8590', paddingTop: '12px' }} />
+              <Legend wrapperStyle={{ fontSize: '11px', color: '#808080', paddingTop: '12px' }} />
               {assets.map((asset) => (
                 <Line
                   key={`${asset.name}-มูลค่า`}
