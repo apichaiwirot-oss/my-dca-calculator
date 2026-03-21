@@ -10,10 +10,58 @@ st.set_page_config(page_title="Professional DCA Tool", layout="wide")
 # ใช้ CSS เพื่อปรับแต่งให้เหมือนในตัวอย่าง
 st.markdown("""
     <style>
-    .main { background-color: #f8f9fa; }
-    .stMetric { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .main-result { text-align: center; padding: 30px; background-color: #ffffff; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .main-result h1 { color: #6366f1; font-size: 3rem; margin-bottom: 0; }
+    /* 1. พื้นหลังดำสนิทแบบ Netflix */
+    .main {
+        background-color: #000000;
+    }
+    
+    /* 2. ปรับแต่ง Metric Cards ให้ดูพรีเมียม */
+    [data-testid="stMetric"] {
+        background-color: #141414 !important;
+        border: 1px solid #333333 !important;
+        border-radius: 8px !important;
+        padding: 15px !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3) !important;
+    }
+    
+    /* 3. ส่วนหัวของผลลัพธ์หลัก */
+    .main-result {
+        background-color: #141414 !important;
+        border-radius: 12px !important;
+        padding: 30px !important;
+        border: 1px solid #E50914 !important; /* ขอบสีแดง Netflix */
+    }
+
+    /* 4. สีข้อความและหัวข้อ */
+    h1, h2, h3, .stMarkdown p {
+        color: #FFFFFF !important;
+    }
+    
+    .main-result h1 {
+        color: #E50914 !important; /* หัวข้อกำไร/ขาดทุนเป็นสีแดง */
+    }
+
+    /* 5. ปรับแต่งปุ่มกดให้เป็นสีแดง Netflix */
+    div.stButton > button {
+        background-color: #E50914 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important;
+        font-weight: bold !important;
+        transition: 0.3s !important;
+    }
+    
+    div.stButton > button:hover {
+        background-color: #B20710 !important;
+        transform: scale(1.05);
+    }
+
+    /* 6. ปรับสี Input (ช่องกรอกข้อมูล) ให้เข้ากับธีมมืด */
+    .stTextInput input, .stNumberInput input {
+        background-color: #2F2F2F !important;
+        color: white !important;
+        border: 1px solid #444 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
